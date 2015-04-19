@@ -62,7 +62,7 @@ class ExpressionAfterOrError(Error):
   Exception raised when expression ends right after or symbol (|)
   '''
   def __init__(self, parser):
-    self.msg = 'Expressions involving the keyword or cannot be followed by other expressions. To include or statements in larger expressions, nest them.'
+    self.msg = '''Expressions involving the keyword or cannot be followed by other expressions.\nTo include or statements in larger expressions, nest them.\nFor example, this will not work: expr: "a" or "b"; expr: "c";\nBut, if you wanted to have either a or b followed by c, you could do this: expr: [ expr: "a" or "b";]; expr: "c";'''
     self.msg += '\n' + self.show_error_location(parser)
 
 class ColonError(Error):

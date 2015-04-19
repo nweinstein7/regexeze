@@ -161,12 +161,14 @@ expr: [expr: 'a' or 'b';];
 ((a)|(b))
 expr: 'a' for zero_or_more or 'b' for zero_or_more;
 (a)*|(b)* 
-expr: [expr: 'a' or 'b'; expr: 'c';]; CAREFUL!
+expr: [expr: 'a' or 'b'; expr: 'c';]; ERROR
 ((a)|(b)(c))
  - this may confuse some people, as the or will carry over to make it both ((a)|(b)(c))
  - the c gets added into the or
- - for best results, include ors in their own nested expressions, don't mess around with multiple expressions including or in the same nested expression
- - to fix this, could make "or" versions of any_char, plaintext, etc. which can only go to end of input, not new expression
+ - thus, this causes an expression after or error
+ - to get what the person actually meant, they could do:
+  expr: [expr: 'a' or [ expr: 'b'; expr: 'c';];];
+  ((a)|((b)(c)))
 
 TODO:
 1. Nesting [DONE]
@@ -184,4 +186,5 @@ TODO:
 6. Group names
 7. Escaping in text
 8. Documentation
-9. Show error location is buggy :/ 
+9. Make sure names (of module, classes, etc.) Are sufficiently descriptive
+10. Show error location is buggy :/
