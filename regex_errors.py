@@ -49,6 +49,14 @@ class IncompleteExpressionError(Error):
     self.msg = 'Each expression must end in a semi-colon.\nFor empty input, remember to use quotes.'
     self.msg += '\n' + self.show_error_location(parser)
 
+class IncompleteOrError(Error):
+  '''
+  Exception raised when expression ends right after or symbol (|)
+  '''
+  def __init__(self, parser):
+    self.msg = 'Invalid syntax after or.\nTo make an empty or alternative, remember to put the empty string in quotes and still end with a semicolon.'
+    self.msg += '\n' + self.show_error_location(parser)
+
 class ColonError(Error):
   '''
   Exception raised when there is a missing colon
@@ -62,7 +70,7 @@ class InvalidModifierError(Error):
   Exception raised when an expr value is followed by something other than a key word or end bracket
   '''
   def __init__(self, parser):
-    self.msg = 'Invalid modifier for an expression. Expressions must end in semi-colon.'
+    self.msg = 'Invalid modifier for an expression. Expressions must end in semi-colon.\nBe careful after the or keyword not to start the next expression with "expr:".'
     self.msg += '\n' + self.show_error_location(parser)
 
 class InvalidRepetitionsError(Error):

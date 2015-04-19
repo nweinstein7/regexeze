@@ -153,6 +153,12 @@ expr: [expr: [expr: a for zero_or_more; expr: b for one_or_more;];];
 While in nested state, create a CHILD PARSER to whom you pass through each token
 At end, take child parser's ret_val as expr
 
+OR:
+expr: 'a' or 'b';
+(a|b)
+expr: 'a' for zero_or_more or 'b' for zero_or_more;
+(a)*|(b)* 
+
 TODO:
 1. Nesting
 2. Or

@@ -37,6 +37,8 @@ class RegexState(object):
   END_NESTED_EXPRESSION = 'EndNestedExpression'
   NEW_NESTED_EXPRESSION_ERROR_STATE = 'NewNestedExpressionErrorState'
   UNCLOSED_BRACKET_ERROR_STATE = 'UnclosedBracketErrorState'
+  OR = 'Or'
+  INCOMPLETE_OR_ERROR_STATE = 'IncompleteOrErrorState'
   
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
@@ -60,6 +62,7 @@ class RegexState(object):
   NESTED_CLOSE_TOKEN = ']'
   COLON_TOKEN = ':'
   CHECK_NUMBER_OF_TIMES_TOKEN = 'for'
+  OR_TOKEN = 'or'
 
   def __init__(self):
     self.transitions = {}
@@ -99,6 +102,7 @@ class PotentiallyFinalRegexState(RegexState):
     super(PotentiallyFinalRegexState, self).__init__()
     self.transitions[self.END_OF_EXPRESSION_SYMBOL] = self.NEW_EXPRESSION
     self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_EXPRESSION_ERROR_STATE
+    self.transitions[self.OR_TOKEN] = self.OR
 
   def get_token_not_found_transition(self, token):
     return self.INVALID_MODIFIER_STATE
@@ -158,6 +162,10 @@ class IncompleteExpressionErrorState(RegexState):
   def do_action(self, parser):
     raise regex_errors.IncompleteExpressionError(parser)
 
+class IncompleteOrErrorState(RegexState):
+  def do_action(self, parser):
+    raise regex_errors.IncompleteOrError(parser)
+
 class ColonErrorState(RegexState):
   def do_action(self, parser):
     raise regex_errors.ColonError(parser)
@@ -173,6 +181,25 @@ class InvalidRepetitionsErrorState(RegexState):
 class InvalidRepetitionRangeErrorState(RegexState):
   def do_action(self, parser):
     raise regex_errors.InvalidRepetitionRangeError(parser)
+
+class Or(RegexState):
+  '''
+  Inserts a pipe between first and last
+  '''
+  def __init__(self):
+    super(Or, self).__init__()
+    self.transitions[self.ANY_CHAR_TOKEN] = self.ANY_CHAR
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_OR_ERROR_STATE
+    self.transitions[self.NESTED_OPEN_TOKEN] = self.NEW_NESTED_EXPRESSION
+
+  def get_token_not_found_transition(self, token):
+    return self.PLAIN_TEXT
+
+  def do_action(self, parser):
+    parser.add_current_fragment()
+    parser.add_or()
+    parser.child = regex_interface.RegexParserMachine('')
+
 
 class SetGreedy(PotentiallyFinalRegexState):
   '''
@@ -436,7 +463,9 @@ class RegexStateFactory(object):
                        RegexState.END_NESTED_EXPRESSION: EndNestedExpression(),
                        RegexState.NESTED_EXPRESSION: NestedExpression(),
                        RegexState.NEW_NESTED_EXPRESSION: NewNestedExpression(),
-                       RegexState.NEW_NESTED_EXPRESSION_ERROR_STATE: NewNestedExpressionErrorState()}
+                       RegexState.NEW_NESTED_EXPRESSION_ERROR_STATE: NewNestedExpressionErrorState(),
+                       RegexState.OR: Or(),
+                       RegexState.INCOMPLETE_OR_ERROR_STATE: IncompleteOrErrorState()}
 
   @staticmethod
   def get_next_state(state, token):

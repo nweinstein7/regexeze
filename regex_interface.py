@@ -21,6 +21,7 @@ class RegexParserMachine(object):
   END_OF_INPUT = 'end_of_input'
   OPEN_PARENTHESIS = '('
   CLOSE_PARENTHESIS = ')'
+  OR_SYMBOL = '|'
 
   def __init__(self, arg_string=""):
     self.state = regex_states.NewExpression()
@@ -79,6 +80,9 @@ class RegexParserMachine(object):
     self.ret_val += self.current_fragment + self.CLOSE_PARENTHESIS + self.current_modifier
     self.current_fragment = ''
     self.current_modifier = ''
+
+  def add_or(self):
+    self.ret_val += self.OR_SYMBOL
 
 if __name__ == '__main__':
   my_rgpm = RegexParserMachine('')

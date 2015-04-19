@@ -265,6 +265,36 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '([)?', 'Should still be able to use [ as an expression')
 
+    #TEST OR
+    #Simple or expression
+    self.rpm = regex_interface.RegexParserMachine('''expr: 'a' or 'b';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(a)|(b)', 'Should be able to parse a simple or statement')
+
+    #Or with modifiers
+    self.rpm = regex_interface.RegexParserMachine('''expr: 'a' for zero_or_one greedy or 'b' for one_or_more;''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(a)?|(b)+?', 'Should be able to parse or with modifiers')
+
+    #Or with nested components
+    self.rpm = regex_interface.RegexParserMachine('''expr: [expr: 'a' for zero_or_one greedy;] or [ expr: 'b' for one_or_more;];''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '((a)?)|((b)+?)', 'Should be able to parse or between two nested expressions')
+
+    #Or fully nested
+    self.rpm = regex_interface.RegexParserMachine('''expr: [expr: 'a' for zero_or_one greedy or 'b' for one_or_more;];''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '((a)?|(b)+?)', 'Should be able to limit the reach of or by grouping it using a nested expression')
+
+    #Or invalid syntax - using expr: after or
+    self.rpm = regex_interface.RegexParserMachine('''expr: [expr: 'a' for zero_or_one greedy or expr: 'b' for one_or_more;];''')
+    self.assertRaises(regex_errors.InvalidModifierError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.child.state, regex_states.InvalidModifierState), 'Using expr after or is treated as an invalid modifier state, because it thinks "expr:" is the input and "b" is the modifier.')
+
+    #Incomplete or
+    self.rpm = regex_interface.RegexParserMachine('''expr: 'a' for zero_or_one greedy or''')
+    self.assertRaises(regex_errors.IncompleteOrError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteOrErrorState), 'If the expression ends on an or, should result in an incomplete or error.')
 
 if __name__ == '__main__':
     unittest.main()
