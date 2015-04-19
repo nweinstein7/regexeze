@@ -355,6 +355,8 @@ class OrOf(RegexState):
     parser.current_fragment = parser.current_fragment[:-1]
 
   def get_token_not_found_transition(self, token):
+    if token == '':
+      return self.INCOMPLETE_CLASS_ERROR_STATE
     return self.CLASS_STATE
 
 class ClassState(PotentiallyFinalRegexState):
@@ -381,6 +383,8 @@ class OpenClass(RegexState):
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.OPEN_CLASS_SYMBOL
 
   def get_token_not_found_transition(self, token):
+    if token == '':
+      return self.INCOMPLETE_CLASS_ERROR_STATE
     return self.CLASS_STATE
 
 class AnyChar(PotentiallyFinalRegexState):

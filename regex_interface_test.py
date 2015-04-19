@@ -317,6 +317,11 @@ class test_regex_parser_machine(unittest.TestCase):
     self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'End of input directly after keyword of should result in error.')
 
+    #Test empty class statement
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char of ""''')
+    self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'Empty input to character class should result in an error..')
+
     #Test or_of with classes
     self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of 'def' or_of 'ghi';''')
     self.rpm.parse()
@@ -326,6 +331,12 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of''')
     self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'End of input directly after keyword or_of should result in error.')
+
+    #Test or_of statement with empty class
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of ""''')
+    self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'Empty input to character class should result in error.')
+
 
 if __name__ == '__main__':
     unittest.main()
