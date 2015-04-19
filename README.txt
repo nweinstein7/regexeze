@@ -125,11 +125,46 @@ Deterministic Finite State Machine for Validating Regexes of this Type:
   ->not expr or EOF-> (FAIL)
 
 NESTING
-if start_expression ->expr-> then go into "nested" state
--- push into stack every time token == ':'
--- pop from stack every time token == ';'
-if token == ';' and stack == empty, leave nested state
+Nested expressions start with square brackets [
+main parser goes into "nested" state
+-- push into stack every time token == '['
+-- pop from stack every time token == ']'
+if token == ']' and stack == empty, leave nested state
 Treat nested state just like plain_text state - put it in parentheses and modify it as necessary
+'[' to anything other than expr is treated as plain text
+Examples:
+expr: [expr: hello; expr: hello; expr: hello;];
+((hello)(hello)(hello))
+
+-:-> (START_EXPRESSION)
+  ->[-> (NEW_NESTED_EXPRESSION) parser stack: [
+    ->expr-> (NESTED_EXPRESSION) child process token
+      ->any token that is valid for child-> (NESTED_EXPRESSION) child process token
+      ->EOF-> incomplete nesting exception
+      ->[-> (NESTED_EXPRESSION) child process token parser stack: [[
+      ->]-> if parser stack is empty, go to END_NESTED EXPRESSION
+            else, back to NESTED_EXPRESSION child process token parser stack: [
+
+expr: [expr: [expr: 'a';]]
+
+expr: [expr: [expr: a for zero_or_more; expr: b for one_or_more;];];
+(((a)*(b)+))
 
 While in nested state, create a CHILD PARSER to whom you pass through each token
 At end, take child parser's ret_val as expr
+
+TODO:
+1. Nesting
+2. Or
+3. Classes
+  - typical classes (of)
+  - complement classes (except)
+  - range (from ... until)
+  - escaping inside classes
+  - or with classes (multiple items in class)
+4. Special characters (alphanumeric, decimal, whitespace)
+5. Start, end
+6. Group names
+7. Escaping in text
+8. Documentation
+9. Show error location is buggy :/ 

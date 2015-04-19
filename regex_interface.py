@@ -2,13 +2,6 @@ import shlex
 import regex_states
 import sys
 
-class Storage(object):
-  value = ''
-  
-  def setValue(self, value):
-    self.value = value
-    return value
-
 class RegexParserMachine(object):
   '''
   A deterministic finite state machine for validating and parsing regex language
@@ -22,6 +15,8 @@ class RegexParserMachine(object):
   @type ret_val: string
   @param approximate_location: the approximate position through the arg_string (simply for error reporting, showing where in the string the error is)
   @type approximate_location: int
+  @param child: the child machine used to parse nested expressions
+  @type child: RegexParserMachine
   '''
   END_OF_INPUT = 'end_of_input'
   OPEN_PARENTHESIS = '('
@@ -36,6 +31,7 @@ class RegexParserMachine(object):
     self.approximate_location = 0
     self.recursive_stack = []
     self.tokenize(self.arg_string)
+    self.child = None
 
   def parse(self, source=""):
    '''
@@ -69,9 +65,6 @@ class RegexParserMachine(object):
   def tokenize(self, input):
     self.tokenizer = shlex.shlex(input, posix=True)
 
-  def parse_stdin(self):
-    pass
-
   def process_token(self, token):
     self.current_token = token
     self.state = regex_states.RegexStateFactory.get_next_state(self.state, token)
@@ -89,7 +82,5 @@ class RegexParserMachine(object):
 
 if __name__ == '__main__':
   my_rgpm = RegexParserMachine('')
-  for line in sys.stdin:
-    
-    my_rgpm.parse()
+  my_rgpm.parse(sys.stdin)
   print my_rgpm.ret_val

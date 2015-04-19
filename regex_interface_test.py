@@ -244,6 +244,27 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '(a){10,}', 'Expression modified by 1 up_to infinity should result in the expression in a group followed by 1, in brackets')
 
+    #TEST NESTING
+    #Simple nesting (1 layer)
+    self.rpm = regex_interface.RegexParserMachine('''expr: [expr: 'a';];''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '((a))', 'Simple nested expression should end up with expression inside two sets of parentheses')
+
+    #Complex nesting (2 layer)
+    self.rpm = regex_interface.RegexParserMachine('''expr: [expr: [expr: 'abc' for zero_or_more greedy;]; expr: 'hello';] for 1;''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(((abc)*)(hello)){1}', 'Complex nested expressions should be parsed correctly')
+
+    #Ending before brackets are closed
+    self.rpm = regex_interface.RegexParserMachine('''expr: [expr: 'a';''')
+    self.assertRaises(regex_errors.UnclosedBracketError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.UnclosedBracketErrorState), 'Expression cannot end in the middle of a nested expression')
+
+    #Using an open square bracket ([) as an expression
+    self.rpm = regex_interface.RegexParserMachine('''expr: [ for zero_or_one;''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([)?', 'Should still be able to use [ as an expression')
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,4 +1,5 @@
 import regex_errors
+import regex_interface
 
 class RegexState(object):
   '''
@@ -29,7 +30,14 @@ class RegexState(object):
   INVALID_REPETITION_RANGE_ERROR_STATE = 'InvalidRepetitionRangeErrorState'
   M_UP_TO_N_REPETITIONS = 'MUpToNRepetitions'
   M_UP_TO_INFINITY_REPETITIONS = 'MUpToInfinityRepetitions'
-
+  NEW_NESTED_EXPRESSION = 'NewNestedExpression'
+  NESTED_EXPRESSION = 'NestedExpression'
+  NESTED_EXPRESSION_DOWN_LEVEL = 'NestedExpressionDownLevel'
+  NESTED_EXPRESSION_UP_LEVEL = 'NestedExpressionUpLevel'
+  END_NESTED_EXPRESSION = 'EndNestedExpression'
+  NEW_NESTED_EXPRESSION_ERROR_STATE = 'NewNestedExpressionErrorState'
+  UNCLOSED_BRACKET_ERROR_STATE = 'UnclosedBracketErrorState'
+  
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
   NOT_GREEDY_SYMBOL = '?'
@@ -48,6 +56,11 @@ class RegexState(object):
   EXPRESSION_TOKEN = 'expr'
   ANY_CHAR_TOKEN = 'any_char'
   INFINITY_TOKEN = 'infinity'
+  NESTED_OPEN_TOKEN = '['
+  NESTED_CLOSE_TOKEN = ']'
+  COLON_TOKEN = ':'
+  CHECK_NUMBER_OF_TIMES_TOKEN = 'for'
+
   def __init__(self):
     self.transitions = {}
 
@@ -80,7 +93,7 @@ class RegexState(object):
 
 class PotentiallyFinalRegexState(RegexState):
   '''
-  Generic parent state for any state which could theoretically be followed by a comma (new expression) or end of input
+  Generic parent state for any state which could theoretically be followed by a semi-colon (new expression) or end of input
   '''
   def __init__(self):
     super(PotentiallyFinalRegexState, self).__init__()
@@ -132,6 +145,14 @@ class EndOfExpressions(RegexState):
 class NewExpressionErrorState(RegexState):
   def do_action(self, parser):
     raise regex_errors.NewExpressionError(parser)
+
+class NewNestedExpressionErrorState(RegexState):
+  def do_action(self, parser):
+    raise regex_errors.NewNestedExpressionError(parser)
+
+class UnclosedBracketErrorState(RegexState):
+  def do_action(self, parser):
+    raise regex_errors.UnclosedBracketError(parser)
 
 class IncompleteExpressionErrorState(RegexState):
   def do_action(self, parser):
@@ -281,7 +302,7 @@ class AnyChar(PotentiallyFinalRegexState):
 
   def __init__(self):
     super(AnyChar, self).__init__()
-    self.transitions['for'] = self.CHECK_NUMBER_OF_TIMES
+    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
 
   def do_action(self, parser):
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.ANY_CHAR_SYMBOL
@@ -292,24 +313,81 @@ class PlainText(PotentiallyFinalRegexState):
   '''
   def __init__(self):
     super(PlainText, self).__init__()
-    self.transitions['for'] = self.CHECK_NUMBER_OF_TIMES
+    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
 
   def do_action(self, parser):
     parser.current_fragment = parser.OPEN_PARENTHESIS + parser.current_token
+
+class EndNestedExpression(PotentiallyFinalRegexState):
+  '''
+  State after a nested expression
+  '''
+  def __init__(self):
+    super(EndNestedExpression, self).__init__()
+    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
+
+  def do_action(self, parser):
+    parser.child.end()
+    parser.current_fragment = parser.OPEN_PARENTHESIS + parser.child.ret_val
+
+class NestedExpression(RegexState):
+  '''
+  State of being in a nested expression (inside square brackets)
+  @param nested_level: the depth of the nesting
+  @type nested_level: int
+  '''
+  def __init__(self, nested_level=0):
+    super(NestedExpression, self).__init__()
+    self.nested_level = nested_level
+
+  def do_action(self, parser):
+    parser.child.process_token(parser.current_token)
+
+  def get_next(self, token):
+    if token == self.END_OF_INPUT_TOKEN:
+      return self.UNCLOSED_BRACKET_ERROR_STATE
+    if token == self.NESTED_CLOSE_TOKEN and self.nested_level == 0:
+      return self.END_NESTED_EXPRESSION
+    elif token == self.NESTED_CLOSE_TOKEN and self.nested_level > 0:
+      return self.NESTED_EXPRESSION_DOWN_LEVEL
+    elif token == self.NESTED_OPEN_TOKEN:
+      return self.NESTED_EXPRESSION_UP_LEVEL
+    return self.NESTED_EXPRESSION
+
+class NewNestedExpression(PotentiallyFinalRegexState):
+  '''
+  State of starting an expression nested within current expression (after open square bracket)
+  '''
+  def __init__(self):
+    super(NewNestedExpression, self).__init__()
+    self.transitions[self.EXPRESSION_TOKEN] = self.NESTED_EXPRESSION
+    self.transitions[self.NESTED_CLOSE_TOKEN] = self.END_NESTED_EXPRESSION
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.UNCLOSED_BRACKET_ERROR_STATE
+    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES 
+
+  def do_action(self, parser):
+    parser.current_fragment = parser.OPEN_PARENTHESIS + parser.current_token
+
+  def get_token_not_found_transition(self, token):
+    return self.NEW_NESTED_EXPRESSION_ERROR_STATE
 
 class StartExpression(RegexState):
   def __init__(self):
     super(StartExpression, self).__init__()
     self.transitions[self.ANY_CHAR_TOKEN] = self.ANY_CHAR
     self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_EXPRESSION_ERROR_STATE
+    self.transitions[self.NESTED_OPEN_TOKEN] = self.NEW_NESTED_EXPRESSION
 
   def get_token_not_found_transition(self, token):
     return self.PLAIN_TEXT
 
+  def do_action(self, parser):
+    parser.child = regex_interface.RegexParserMachine('')
+
 class CheckColon(RegexState):
   def __init__(self):
     super(CheckColon, self).__init__()
-    self.transitions[':'] = self.START_EXPRESSION
+    self.transitions[self.COLON_TOKEN] = self.START_EXPRESSION
 
   def get_token_not_found_transition(self, token):
     return self.COLON_ERROR_STATE
@@ -354,7 +432,11 @@ class RegexStateFactory(object):
                        RegexState.UP_TO: UpTo(),
                        RegexState.INVALID_REPETITION_RANGE_ERROR_STATE: InvalidRepetitionRangeErrorState(),
                        RegexState.M_UP_TO_N_REPETITIONS: MUpToNRepetitions(),
-                       RegexState.M_UP_TO_INFINITY_REPETITIONS: MUpToInfinityRepetitions()}
+                       RegexState.M_UP_TO_INFINITY_REPETITIONS: MUpToInfinityRepetitions(),
+                       RegexState.END_NESTED_EXPRESSION: EndNestedExpression(),
+                       RegexState.NESTED_EXPRESSION: NestedExpression(),
+                       RegexState.NEW_NESTED_EXPRESSION: NewNestedExpression(),
+                       RegexState.NEW_NESTED_EXPRESSION_ERROR_STATE: NewNestedExpressionErrorState()}
 
   @staticmethod
   def get_next_state(state, token):
@@ -367,5 +449,31 @@ class RegexStateFactory(object):
      @return: the next state
      @rtype: RegexState
      '''
+     if isinstance(state, NestedExpression):
+       return RegexStateFactory.get_next_nested_state(state, token)
      return RegexStateFactory.STATE_DICTIONARY[state.get_next(token)]
 
+  @staticmethod
+  def get_next_nested_state(state, token):
+     '''
+     Hydrates the next state for recursive nested expression states
+     @param state: the current state
+     @type state: RegexState
+     @param token: token to use as the key to the next transition
+     @type token: string
+     @return: the next state
+     @rtype: RegexState
+     '''
+     if not isinstance(state, NestedExpression):
+       return BaseErrorState()
+
+     next_key = state.get_next(token)
+     if next_key == RegexState.UNCLOSED_BRACKET_ERROR_STATE:
+       return UnclosedBracketErrorState()
+     if next_key == RegexState.END_NESTED_EXPRESSION:
+       return EndNestedExpression()
+     elif next_key == RegexState.NESTED_EXPRESSION_DOWN_LEVEL:
+       return NestedExpression(state.nested_level-1)
+     elif next_key == RegexState.NESTED_EXPRESSION_UP_LEVEL:
+       return NestedExpression(state.nested_level+1)
+     return NestedExpression(state.nested_level)

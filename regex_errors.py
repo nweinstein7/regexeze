@@ -19,10 +19,26 @@ class Error(Exception):
 
 class NewExpressionError(Error):
   '''
-  Exception raised when a new exception does not start with expr
+  Exception raised when a new expression does not start with expr
   '''
   def __init__(self, parser):
     self.msg = 'Each expression must start with expr\n'
+    self.msg += '\n' + self.show_error_location(parser)
+
+class NewNestedExpressionError(Error):
+  '''
+  Exception raised when a new nested expression does not start with expr
+  '''
+  def __init__(self, parser):
+    self.msg = 'Each nested expression must start with expr\nIf you were trying to use an open square bracket ([) as an expression, remember to use a valid modifier and end with a semicolon.'
+    self.msg += '\n' + self.show_error_location(parser)
+
+class UnclosedBracketError(Error):
+  '''
+  Exception raised when a nested expression is not finished
+  '''
+  def __init__(self, parser):
+    self.msg = 'Each nested expression must end with a closed square bracket\nIf you were trying to use an open square bracket ([) as an expression, remember to use a valid modifier and end with a semicolon.'
     self.msg += '\n' + self.show_error_location(parser)
 
 class IncompleteExpressionError(Error):
