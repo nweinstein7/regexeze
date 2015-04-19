@@ -1,7 +1,7 @@
 BRAINSTORM
 . (Dot):  any_char
-^ (Carat): start
-$ (Dollar sign): end
+^ (Carat): start_of_string
+$ (Dollar sign): end_of_string
 * (star): for zero_or_more
 + (plus): for one_or_more
 ? (question mark): for zero_or_one
@@ -9,14 +9,14 @@ $ (Dollar sign): end
 {m,n} (match for as few as m, as many as n times): for m up_to n
 | (pipe): or
 [] (brackets - class, match any of them): of (after any_char)
-                                          also supports or, e.g. "expr: any_char of 'a' or 'b' or 'c';"
+                                          also supports or_of, e.g. "expr: any_char of 'a' or_of 'b' or_of 'c';"
 [a-c] (dash - range of chars): from 'a' until 'b' (after any_char)
 [^5] (carat inside a class - complement of the class): except (after any_char)
 
 KEYWORDS:
 any_char
-start
-end
+start_of_string
+end_of_string
 for
 up_to
 infinity
@@ -24,6 +24,7 @@ zero_or_more
 one_or_more
 zero_or_one
 or
+or_of
 expr
 decimal
 non_decimal
@@ -42,7 +43,7 @@ expr: 'c'; expr: 'a' for zero_or_more; expr: 't';
 
 a[bcd]*b
 expr: 'a', expr: any_char of 'bcd' for zero_or_more,
-expr: 'a', expr: 'b' or 'c' or 'd' for zero_or_more, expr: 'b'
+expr: 'a', expr: 'b' or_of 'c' or_of 'd' for zero_or_more, expr: 'b'
 
 a[^bcd]*b
 expr: 'a', expr: any_char except 'bcd' for zero_or_more, expr: b
@@ -155,13 +156,21 @@ At end, take child parser's ret_val as expr
 
 OR:
 expr: 'a' or 'b';
-(a|b)
+(a)|(b)
+expr: [expr: 'a' or 'b';];
+((a)|(b))
 expr: 'a' for zero_or_more or 'b' for zero_or_more;
 (a)*|(b)* 
+expr: [expr: 'a' or 'b'; expr: 'c';]; CAREFUL!
+((a)|(b)(c))
+ - this may confuse some people, as the or will carry over to make it both ((a)|(b)(c))
+ - the c gets added into the or
+ - for best results, include ors in their own nested expressions, don't mess around with multiple expressions including or in the same nested expression
+ - to fix this, could make "or" versions of any_char, plaintext, etc. which can only go to end of input, not new expression
 
 TODO:
-1. Nesting
-2. Or
+1. Nesting [DONE]
+2. Or [DONE]
 3. Classes
   - typical classes (of)
   - complement classes (except)
@@ -170,6 +179,8 @@ TODO:
   - or with classes (multiple items in class)
 4. Special characters (alphanumeric, decimal, whitespace)
 5. Start, end
+  - not modifiable!
+  -start_of_string, end_of_string
 6. Group names
 7. Escaping in text
 8. Documentation

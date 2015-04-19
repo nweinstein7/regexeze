@@ -57,6 +57,14 @@ class IncompleteOrError(Error):
     self.msg = 'Invalid syntax after or.\nTo make an empty or alternative, remember to put the empty string in quotes and still end with a semicolon.'
     self.msg += '\n' + self.show_error_location(parser)
 
+class ExpressionAfterOrError(Error):
+  '''
+  Exception raised when expression ends right after or symbol (|)
+  '''
+  def __init__(self, parser):
+    self.msg = 'Expressions involving the keyword or cannot be followed by other expressions. To include or statements in larger expressions, nest them.'
+    self.msg += '\n' + self.show_error_location(parser)
+
 class ColonError(Error):
   '''
   Exception raised when there is a missing colon

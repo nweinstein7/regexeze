@@ -296,5 +296,15 @@ class test_regex_parser_machine(unittest.TestCase):
     self.assertRaises(regex_errors.IncompleteOrError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteOrErrorState), 'If the expression ends on an or, should result in an incomplete or error.')
 
+    #Expression after or
+    self.rpm = regex_interface.RegexParserMachine('''expr: 'a' or 'b'; expr: 'c';''')
+    self.assertRaises(regex_errors.ExpressionAfterOrError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.ExpressionAfterOrErrorState), 'There can be only one expression containing or - should use nesting for or statements if you want more than one.')
+
+    #Multiple ors in a row
+    self.rpm = regex_interface.RegexParserMachine('''expr: 'a' or 'b' or 'c' or 'd';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(a)|(b)|(c)|(d)', 'Should be able to have any number of ors in a row')
+
 if __name__ == '__main__':
     unittest.main()

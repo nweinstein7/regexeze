@@ -39,6 +39,7 @@ class RegexState(object):
   UNCLOSED_BRACKET_ERROR_STATE = 'UnclosedBracketErrorState'
   OR = 'Or'
   INCOMPLETE_OR_ERROR_STATE = 'IncompleteOrErrorState'
+  EXPRESSION_AFTER_OR_ERROR_STATE = 'ExpressionAfterOrErrorState'
   
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
@@ -166,6 +167,10 @@ class IncompleteOrErrorState(RegexState):
   def do_action(self, parser):
     raise regex_errors.IncompleteOrError(parser)
 
+class ExpressionAfterOrErrorState(RegexState):
+  def do_action(self, parser):
+    raise regex_errors.ExpressionAfterOrError(parser)
+
 class ColonErrorState(RegexState):
   def do_action(self, parser):
     raise regex_errors.ColonError(parser)
@@ -199,6 +204,7 @@ class Or(RegexState):
     parser.add_current_fragment()
     parser.add_or()
     parser.child = regex_interface.RegexParserMachine('')
+    parser.after_or = True
 
 
 class SetGreedy(PotentiallyFinalRegexState):
@@ -420,16 +426,26 @@ class CheckColon(RegexState):
     return self.COLON_ERROR_STATE
 
 class NewExpression(RegexState):
+  '''
+  State at the very beginning of expression, or after a semi-colon
+  @param after_or: whether this new expression is coming after an or (in which case it should only go to end_of_input)
+  @type after_or: bool
+  '''
   def __init__(self):
     super(NewExpression, self).__init__()
-    self.transitions[self.EXPRESSION_TOKEN] = self.CHECK_COLON
     self.transitions[self.END_OF_INPUT_TOKEN] = self.END_OF_EXPRESSIONS
+    self.after_or = False
 
   def get_token_not_found_transition(self, token):
+    if token == self.EXPRESSION_TOKEN and self.after_or:
+      return self.EXPRESSION_AFTER_OR_ERROR_STATE
+    elif token == self.EXPRESSION_TOKEN:
+      return self.CHECK_COLON
     return self.NEW_EXPRESSION_ERROR_STATE
 
   def do_action(self, parser):
     parser.add_current_fragment()
+    self.after_or = parser.after_or
 
 class RegexStateFactory(object):
   '''
@@ -465,7 +481,8 @@ class RegexStateFactory(object):
                        RegexState.NEW_NESTED_EXPRESSION: NewNestedExpression(),
                        RegexState.NEW_NESTED_EXPRESSION_ERROR_STATE: NewNestedExpressionErrorState(),
                        RegexState.OR: Or(),
-                       RegexState.INCOMPLETE_OR_ERROR_STATE: IncompleteOrErrorState()}
+                       RegexState.INCOMPLETE_OR_ERROR_STATE: IncompleteOrErrorState(),
+                       RegexState.EXPRESSION_AFTER_OR_ERROR_STATE: ExpressionAfterOrErrorState()}
 
   @staticmethod
   def get_next_state(state, token):

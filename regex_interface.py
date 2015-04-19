@@ -17,6 +17,8 @@ class RegexParserMachine(object):
   @type approximate_location: int
   @param child: the child machine used to parse nested expressions
   @type child: RegexParserMachine
+  @param after_or: whether the parser has hit an or (in which case it should proceed to another expression after semicolon, because that would be confusing)
+  @type after_or: bool
   '''
   END_OF_INPUT = 'end_of_input'
   OPEN_PARENTHESIS = '('
@@ -33,6 +35,7 @@ class RegexParserMachine(object):
     self.recursive_stack = []
     self.tokenize(self.arg_string)
     self.child = None
+    self.after_or = False
 
   def parse(self, source=""):
    '''
