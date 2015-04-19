@@ -253,7 +253,7 @@ class KeepNotGreedy(PotentiallyFinalRegexState):
   def __init__(self):
     super(KeepNotGreedy, self).__init__()
 
-class ZeroOrMore(NotGreedyNumberOfRepetitionsState):
+class ZeroOrMore(GreedyNumberOfRepetitionsState):
   '''
   State in which zero_or_more repetitions have been selected
   '''
@@ -261,7 +261,7 @@ class ZeroOrMore(NotGreedyNumberOfRepetitionsState):
     super(ZeroOrMore, self).__init__()
     self.symbol = self.ZERO_OR_MORE_SYMBOL
 
-class OneOrMore(NotGreedyNumberOfRepetitionsState):
+class OneOrMore(GreedyNumberOfRepetitionsState):
   '''
   State in which one_or_more repetitions have been selected
   '''

@@ -144,35 +144,35 @@ class test_regex_parser_machine(unittest.TestCase):
     self.assertRaises(regex_errors.IncompleteExpressionError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteExpressionErrorState), 'Expression with modifier must end in semicolon')
 
-    #Test zero_or_more_modifier - default not greedy
+    #Test zero_or_more_modifier - default greedy
     self.rpm = regex_interface.RegexParserMachine('expr: any_char for zero_or_more;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(.)*?', 'The any_char keyword modified zero_or_more should result in a period in a group followed by asterisk and question mark (defaults to not greedy)')
+    self.assertEquals(self.rpm.ret_val, '(.)*', 'Should be able to parse simple zero or one (*) modifier')
 
     #Test zero_or_more modifier with incorrect greedy/not-greedy modifier
     self.rpm = regex_interface.RegexParserMachine('expr: any_char for zero_or_more afsadf;')
     self.assertRaises(regex_errors.InvalidModifierError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidModifierState), 'After an invalid greedy/not-greedy modifier, should end up in InvalidModifierState')
 
-    #Test zero_or_more modifier with greedy
-    self.rpm = regex_interface.RegexParserMachine('expr: any_char for zero_or_more greedy;')
+    #Test zero_or_more modifier - not greedy
+    self.rpm = regex_interface.RegexParserMachine('expr: any_char for zero_or_more not_greedy;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(.)*', 'The any_char keyword modified zero_or_more greedy should result in a period in a group followed by asterisk')
+    self.assertEquals(self.rpm.ret_val, '(.)*?', 'Should be able to parse a not greedy zero_or_more (*) modifier')
 
-    #Test zero_or_more modifier with greedy in two consecutive expressions
+    #Test two consecutive modified expressions
     self.rpm = regex_interface.RegexParserMachine('''expr: "a" for zero_or_more greedy; expr: "hello" for zero_or_more greedy;''')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a)*(hello)*', 'The any_char keyword modified zero_or_more greedy should result in a period in a group followed by asterisk')
+    self.assertEquals(self.rpm.ret_val, '(a)*(hello)*', 'Should be able to parse two consecutive modified statements')
 
-    #Test one_or_more_modifier - default not greedy
+    #Test one_or_more_modifier - default greedy
     self.rpm = regex_interface.RegexParserMachine('expr: any_char for one_or_more;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(.)+?', 'The any_char keyword modified one_or_more should result in a period in a group followed by plus and question mark (defaults to not greedy)')
+    self.assertEquals(self.rpm.ret_val, '(.)+', 'Should be able to parse the one_or_more (+) modifier')
 
-    #Test one_or_more modifier with greedy
-    self.rpm = regex_interface.RegexParserMachine('expr: "a" for one_or_more greedy;')
+    #Test one_or_more modifier with not greedy
+    self.rpm = regex_interface.RegexParserMachine('expr: "a" for one_or_more not_greedy;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a)+', 'Expression modified one_or_more greedy should result in the expression in a group followed by plus')
+    self.assertEquals(self.rpm.ret_val, '(a)+?', 'Should be able to parse one_or_more_modifier not greedy')
 
     #Test zero_or_one modifier - default greedy
     self.rpm = regex_interface.RegexParserMachine('expr: "a" for zero_or_one;')
@@ -192,27 +192,27 @@ class test_regex_parser_machine(unittest.TestCase):
     #Test zero_or_one modifier with superfluous *greedy* modifier
     self.rpm = regex_interface.RegexParserMachine('expr: "a" for zero_or_one greedy;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a)?', 'Expression modified zero_or_one greedy should result in the expression in a group followed by a question mark')
+    self.assertEquals(self.rpm.ret_val, '(a)?', 'Should be able to supply greedy/not_greedy regardless of the default greediness')
 
-    #Test one_or_more modifier with superfluous *not_greedy* modifier
-    self.rpm = regex_interface.RegexParserMachine('expr: "a" for one_or_more not_greedy;')
+    #Test one_or_more modifier with superfluous *greedy* modifier
+    self.rpm = regex_interface.RegexParserMachine('expr: "a" for one_or_more greedy;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a)+?', 'Expression modified zero_or_one not_greedy should result in the expression in a group followed by a plus and a question mark')
+    self.assertEquals(self.rpm.ret_val, '(a)+', 'Should be able to supply greedy/not_greedy regardless of the default greediness')
 
     #Test m repetitions modifier
     self.rpm = regex_interface.RegexParserMachine('expr: "a" for 1;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a){1}', 'Expression modified by 1 should result in the expression in a group followed by 1 in brackets')
+    self.assertEquals(self.rpm.ret_val, '(a){1}', 'Should be able to parse simple m repetitions modifier')
 
     #Test m repetitions modifier superfluous greedy
     self.rpm = regex_interface.RegexParserMachine('expr: "a" for 1 greedy;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a){1}', 'Expression modified by 1 greedy should result in the expression in a group followed by 1 in brackets')
+    self.assertEquals(self.rpm.ret_val, '(a){1}', 'Should be able to supply greedy/not_greedy regardless of default')
 
-    #Test m repetitions modifier superfluous not greedy
+    #Test m repetitions modifier not greedy
     self.rpm = regex_interface.RegexParserMachine('expr: "a" for 1 not_greedy;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a){1}?', 'Expression modified by 1 not_greedy should result in the expression in a group followed by 1 in brackets followed by question mark')
+    self.assertEquals(self.rpm.ret_val, '(a){1}?', 'Should be able to parse m repetitions not greedy')
 
     #Test m repetitions modifier followed by up_to then end of expression
     self.rpm = regex_interface.RegexParserMachine('expr: "a" for 1 up_to;')
@@ -227,22 +227,22 @@ class test_regex_parser_machine(unittest.TestCase):
     #Test m up_to n repetitions
     self.rpm = regex_interface.RegexParserMachine('expr: "a" for 1 up_to 2;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a){1,2}', 'Expression modified by 1 up_to 2 should result in the expression in a group followed by 1,2 in brackets')
+    self.assertEquals(self.rpm.ret_val, '(a){1,2}', 'Should be able to parse m up_to n repetitions')
 
     #Test m up_to n repetitions greedy (default - no change from above)
     self.rpm = regex_interface.RegexParserMachine('expr: "a" for 1 up_to 2 greedy;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a){1,2}', 'Expression modified by 1 up_to 2 greedy should result in the expression in a group followed by 1,2 in brackets')
+    self.assertEquals(self.rpm.ret_val, '(a){1,2}', 'Should be able to parse m up_to n repetitions specifying greedy')
 
     #Test m up_to n repetitions not greedy
     self.rpm = regex_interface.RegexParserMachine('expr: "a" for 1 up_to 2 not_greedy;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a){1,2}?', 'Expression modified by 1 up_to 2 not_greedy should result in the expression in a group followed by 1,2 in brackets followed by question mark')
+    self.assertEquals(self.rpm.ret_val, '(a){1,2}?', 'Should be able to parse m up_to n reptitions not greedy')
 
     #Test m up_to infinity repetitions
     self.rpm = regex_interface.RegexParserMachine('expr: "a" for 10 up_to infinity;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a){10,}', 'Expression modified by 1 up_to infinity should result in the expression in a group followed by 1, in brackets')
+    self.assertEquals(self.rpm.ret_val, '(a){10,}', 'Should be able to parse number range of reptitions, where the upper bound is unlimited (infinity keyword)')
 
     #TEST NESTING
     #Simple nesting (1 layer)
@@ -274,17 +274,17 @@ class test_regex_parser_machine(unittest.TestCase):
     #Or with modifiers
     self.rpm = regex_interface.RegexParserMachine('''expr: 'a' for zero_or_one greedy or 'b' for one_or_more;''')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a)?|(b)+?', 'Should be able to parse or with modifiers')
+    self.assertEquals(self.rpm.ret_val, '(a)?|(b)+', 'Should be able to parse or with modifiers')
 
     #Or with nested components
     self.rpm = regex_interface.RegexParserMachine('''expr: [expr: 'a' for zero_or_one greedy;] or [ expr: 'b' for one_or_more;];''')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '((a)?)|((b)+?)', 'Should be able to parse or between two nested expressions')
+    self.assertEquals(self.rpm.ret_val, '((a)?)|((b)+)', 'Should be able to parse or between two nested expressions')
 
     #Or fully nested
     self.rpm = regex_interface.RegexParserMachine('''expr: [expr: 'a' for zero_or_one greedy or 'b' for one_or_more;];''')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '((a)?|(b)+?)', 'Should be able to limit the reach of or by grouping it using a nested expression')
+    self.assertEquals(self.rpm.ret_val, '((a)?|(b)+)', 'Should be able to limit the reach of or by grouping it using a nested expression')
 
     #Or invalid syntax - using expr: after or
     self.rpm = regex_interface.RegexParserMachine('''expr: [expr: 'a' for zero_or_one greedy or expr: 'b' for one_or_more;];''')

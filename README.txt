@@ -185,11 +185,13 @@ TODO:
 1. Nesting [DONE]
 2. Or [DONE]
 3. Classes
-  - typical classes (of)
+  - typical classes (of) [DONE]
   - complement classes (except)
   - range (from ... until)
   - escaping inside classes
   - or with classes (multiple items in class)
+    - or_of [DONE]
+    - or_from
 4. Special characters (alphanumeric, decimal, whitespace)
 5. Start, end
   - not modifiable!
