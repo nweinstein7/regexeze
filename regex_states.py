@@ -40,6 +40,10 @@ class RegexState(object):
   OR = 'Or'
   INCOMPLETE_OR_ERROR_STATE = 'IncompleteOrErrorState'
   EXPRESSION_AFTER_OR_ERROR_STATE = 'ExpressionAfterOrErrorState'
+  OPEN_CLASS = 'OpenClass'
+  CLASS_STATE = 'ClassState'
+  INCOMPLETE_CLASS_ERROR_STATE = 'IncompleteClassErrorState'
+  OR_OF = 'OrOf'
   
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
@@ -48,6 +52,8 @@ class RegexState(object):
   ONE_OR_MORE_SYMBOL = '+'
   END_OF_EXPRESSION_SYMBOL = ';'
   M_REPETITIONS_FORMAT = '{{{0}}}'
+  OPEN_CLASS_SYMBOL = '['
+  CLOSE_CLASS_SYMBOL = ']'
 
   END_OF_INPUT_TOKEN = 'end_of_input'
   GREEDY_TOKEN = 'greedy'
@@ -64,6 +70,8 @@ class RegexState(object):
   COLON_TOKEN = ':'
   CHECK_NUMBER_OF_TIMES_TOKEN = 'for'
   OR_TOKEN = 'or'
+  CLASS_TOKEN = 'of'
+  OR_OF_TOKEN = 'or_of'
 
   def __init__(self):
     self.transitions = {}
@@ -162,6 +170,10 @@ class UnclosedBracketErrorState(RegexState):
 class IncompleteExpressionErrorState(RegexState):
   def do_action(self, parser):
     raise regex_errors.IncompleteExpressionError(parser)
+
+class IncompleteClassErrorState(RegexState):
+  def do_action(self, parser):
+    raise regex_errors.IncompleteClassError(parser)
 
 class IncompleteOrErrorState(RegexState):
   def do_action(self, parser):
@@ -331,11 +343,52 @@ class CheckNumberOfTimes(RegexState):
       return self.M_REPETITIONS
     return self.INVALID_REPETITIONS_ERROR_STATE
 
+class OrOf(RegexState):
+  '''
+  State in which a class has been continued using the keyword or_of
+  '''
+  def __init__(self):
+    super(OrOf, self).__init__()
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_CLASS_ERROR_STATE
+
+  def do_action(self, parser):
+    parser.current_fragment = parser.current_fragment[:-1]
+
+  def get_token_not_found_transition(self, token):
+    return self.CLASS_STATE
+
+class ClassState(PotentiallyFinalRegexState):
+  '''
+  State in which a class
+  '''
+  def __init__(self):
+    super(ClassState, self).__init__()
+    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
+    self.transitions[self.OR_OF_TOKEN] = self.OR_OF
+
+  def do_action(self, parser):
+    parser.current_fragment += parser.current_token + self.CLOSE_CLASS_SYMBOL
+
+class OpenClass(RegexState):
+  '''
+  State after keyword "of" has been invoked to indicate a class
+  '''
+  def __init__(self):
+    super(OpenClass, self).__init__()
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_CLASS_ERROR_STATE
+
+  def do_action(self, parser):
+    parser.current_fragment = parser.OPEN_PARENTHESIS + self.OPEN_CLASS_SYMBOL
+
+  def get_token_not_found_transition(self, token):
+    return self.CLASS_STATE
+
 class AnyChar(PotentiallyFinalRegexState):
 
   def __init__(self):
     super(AnyChar, self).__init__()
     self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
+    self.transitions[self.CLASS_TOKEN] = self.OPEN_CLASS
 
   def do_action(self, parser):
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.ANY_CHAR_SYMBOL
@@ -482,7 +535,11 @@ class RegexStateFactory(object):
                        RegexState.NEW_NESTED_EXPRESSION_ERROR_STATE: NewNestedExpressionErrorState(),
                        RegexState.OR: Or(),
                        RegexState.INCOMPLETE_OR_ERROR_STATE: IncompleteOrErrorState(),
-                       RegexState.EXPRESSION_AFTER_OR_ERROR_STATE: ExpressionAfterOrErrorState()}
+                       RegexState.EXPRESSION_AFTER_OR_ERROR_STATE: ExpressionAfterOrErrorState(),
+                       RegexState.OPEN_CLASS: OpenClass(),
+                       RegexState.CLASS_STATE: ClassState(),
+                       RegexState.INCOMPLETE_CLASS_ERROR_STATE: IncompleteClassErrorState(),
+                       RegexState.OR_OF: OrOf()}
 
   @staticmethod
   def get_next_state(state, token):

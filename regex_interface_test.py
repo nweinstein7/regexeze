@@ -306,5 +306,26 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '(a)|(b)|(c)|(d)', 'Should be able to have any number of ors in a row')
 
+    #TEST CLASSES
+    #Test simple class
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([abc])', 'Should be able to parse a simple class expression.')
+
+    #Test incomplete class statement
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char of''')
+    self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'End of input directly after keyword of should result in error.')
+
+    #Test or_of with classes
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of 'def' or_of 'ghi';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([abcdefghi])', 'Should be able to parse complex class expression consist of several or_of statements in a row.')
+
+    #Test incomplete or_of statement
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of''')
+    self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'End of input directly after keyword or_of should result in error.')
+
 if __name__ == '__main__':
     unittest.main()

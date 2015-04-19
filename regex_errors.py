@@ -49,6 +49,14 @@ class IncompleteExpressionError(Error):
     self.msg = 'Each expression must end in a semi-colon.\nFor empty input, remember to use quotes.'
     self.msg += '\n' + self.show_error_location(parser)
 
+class IncompleteClassError(Error):
+  '''
+  Exception raised when an expression ends on the keyword "of" indicating a class
+  '''
+  def __init__(self, parser):
+    self.msg = 'Keyword "of" must be followed by the set of characters to be included in the class.'
+    self.msg += '\n' + self.show_error_location(parser)
+
 class IncompleteOrError(Error):
   '''
   Exception raised when expression ends right after or symbol (|)

@@ -25,6 +25,7 @@ one_or_more
 zero_or_one
 or
 or_of
+or_from
 expr
 decimal
 non_decimal
@@ -170,6 +171,16 @@ expr: [expr: 'a' or 'b'; expr: 'c';]; ERROR
   expr: [expr: 'a' or [ expr: 'b'; expr: 'c';];];
   ((a)|((b)(c)))
 
+CLASSES:
+expr: any_char of 'abc';
+([abc])
+expr: any_char of 'abc' or_of 'def';
+([abcdef])
+expr: any_char from 'a' to 'z' or_from 'A' to 'Z';
+([a-zA-z])
+expr: any_char from 'abc' to 'z'; ERROR (range must be single character)
+expr: any_char from 'Z' to 'A'; ERROR (range must be in character order)
+
 TODO:
 1. Nesting [DONE]
 2. Or [DONE]
@@ -186,5 +197,5 @@ TODO:
 6. Group names
 7. Escaping in text
 8. Documentation
-9. Make sure names (of module, classes, etc.) Are sufficiently descriptive
+9. Make sure names (of module, classes, etc.) are sufficiently descriptive
 10. Show error location is buggy :/
