@@ -192,6 +192,7 @@ TODO:
   - or with classes (multiple items in class)
     - or_of [DONE]
     - or_from
+    - or_except
 4. Special characters (alphanumeric, decimal, whitespace)
 5. Start, end
   - not modifiable!

@@ -1,6 +1,7 @@
 import shlex
 import regex_states
 import sys
+import re
 
 class RegexParserMachine(object):
   '''
@@ -87,6 +88,11 @@ class RegexParserMachine(object):
   def add_or(self):
     self.ret_val += self.OR_SYMBOL
 
+  def process_current_token_as_plain_text(self):
+    '''
+    Sets the current fragment to an open parenthesis followed by the current token
+    '''
+    self.current_fragment = self.OPEN_PARENTHESIS + re.escape(self.current_token)
 if __name__ == '__main__':
   my_rgpm = RegexParserMachine('')
   my_rgpm.parse(sys.stdin)

@@ -86,7 +86,7 @@ class InvalidModifierError(Error):
   Exception raised when an expr value is followed by something other than a key word or end bracket
   '''
   def __init__(self, parser):
-    self.msg = 'Invalid modifier for an expression. Expressions must end in semi-colon.\nBe careful after the or keyword not to start the next expression with "expr:".'
+    self.msg = 'Invalid modifier for an expression.\nExpressions must end in semi-colon.\nBe careful after the keyword or not to start the next expression with "expr:".\nAlso remember to put quotes around expressions that are empty or have special characters in them.'
     self.msg += '\n' + self.show_error_location(parser)
 
 class InvalidRepetitionsError(Error):

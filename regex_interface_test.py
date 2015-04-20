@@ -3,6 +3,7 @@ import regex_errors
 import regex_states
 import regex_interface
 import sys
+import re
 
 class test_regex_parser_machine(unittest.TestCase):
   def setUp(self):
@@ -29,7 +30,7 @@ class test_regex_parser_machine(unittest.TestCase):
     #Test simple expression from file
     self.rpm = regex_interface.RegexParserMachine('')
     self.rpm.parse(self.TEST_FILE_NAME)
-    self.assertEquals(self.rpm.ret_val, '(hello){10}(how are you)', 'Should be able to parse a simple multiline file')
+    self.assertEquals(self.rpm.ret_val, '(hello){10}(how\\ are\\ you)', 'Should be able to parse a simple multiline file')
 
     #Test empty file
     self.rpm = regex_interface.RegexParserMachine('')
@@ -46,7 +47,7 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm = regex_interface.RegexParserMachine('')
     with open(self.TEST_FILE_NAME, 'r') as sys.stdin:
       self.rpm.parse(sys.stdin)
-    self.assertEquals(self.rpm.ret_val, '(hello){10}(how are you)', 'Should be able to parse a simple multiline expression from stdin')
+    self.assertEquals(self.rpm.ret_val, '(hello){10}(how\\ are\\ you)', 'Should be able to parse a simple multiline expression from stdin')
 
     #Test empty stdin
     self.rpm = regex_interface.RegexParserMachine('')
@@ -263,7 +264,7 @@ class test_regex_parser_machine(unittest.TestCase):
     #Using an open square bracket ([) as an expression
     self.rpm = regex_interface.RegexParserMachine('''expr: [ for zero_or_one;''')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '([)?', 'Should still be able to use [ as an expression')
+    self.assertEquals(self.rpm.ret_val, '(\\[)?', 'Should still be able to use [ as an expression')
 
     #TEST OR
     #Simple or expression
@@ -336,6 +337,13 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of ""''')
     self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'Empty input to character class should result in error.')
+
+    #TEST ACCURACY OF REGEXES
+    #test special characters
+    self.rpm = regex_interface.RegexParserMachine('''expr: "$\." for one_or_more;''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('$\.$\.').group(0), '$\.$\.', "Should be able to use ret_val as a regular expression to match a string containing special characters")
 
 
 if __name__ == '__main__':

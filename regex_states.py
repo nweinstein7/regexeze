@@ -406,7 +406,7 @@ class PlainText(PotentiallyFinalRegexState):
     self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
 
   def do_action(self, parser):
-    parser.current_fragment = parser.OPEN_PARENTHESIS + parser.current_token
+    parser.process_current_token_as_plain_text()
 
 class EndNestedExpression(PotentiallyFinalRegexState):
   '''
@@ -456,7 +456,7 @@ class NewNestedExpression(PotentiallyFinalRegexState):
     self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES 
 
   def do_action(self, parser):
-    parser.current_fragment = parser.OPEN_PARENTHESIS + parser.current_token
+    parser.process_current_token_as_plain_text()
 
   def get_token_not_found_transition(self, token):
     return self.NEW_NESTED_EXPRESSION_ERROR_STATE
