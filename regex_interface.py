@@ -27,6 +27,7 @@ class RegexParserMachine(object):
   OPEN_PARENTHESIS = '('
   CLOSE_PARENTHESIS = ')'
   OR_SYMBOL = '|'
+  CLOSE_CLASS_SYMBOL = ']'
 
   def __init__(self, arg_string=""):
     self.state = regex_states.NewExpression()
@@ -96,6 +97,10 @@ class RegexParserMachine(object):
     Sets the current fragment to an open parenthesis followed by the current token
     '''
     self.current_fragment = self.OPEN_PARENTHESIS + re.escape(self.current_token)
+
+  def end_class(self):
+    self.current_fragment += re.escape(self.current_token) + self.CLOSE_CLASS_SYMBOL
+
 if __name__ == '__main__':
   my_rgpm = RegexParserMachine('')
   my_rgpm.parse(sys.stdin)

@@ -323,6 +323,11 @@ class test_regex_parser_machine(unittest.TestCase):
     self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'Empty input to character class should result in an error..')
 
+    #Test simple class statement with special chars
+    self.rpm = regex_interface.RegexParserMachine(r'''expr: any_char of '.*$@^\';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, r'([\.\*\$\@\^\\])', 'Should be able to parse a simple class expression.')
+
     #Test or_of with classes
     self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of 'def' or_of 'ghi';''')
     self.rpm.parse()

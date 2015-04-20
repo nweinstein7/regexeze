@@ -50,7 +50,6 @@ class RegexState(object):
   INVALID_CLASS_RANGE_ERROR_STATE = 'InvalidClassRangeErrorState'
   TO = 'To'
   OPEN_CLASS_RANGE = 'OpenClassRange'
-  CLOSE_CLASS_RANGE = 'CloseClassRange'
   OR_FROM = 'OrFrom'
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
@@ -397,7 +396,7 @@ class OrOf(RegexState):
 
 class ClassState(PotentiallyFinalRegexState):
   '''
-  State in which a class
+  State in which a class value has been indicated (or in which a class range has been ended)
   '''
   def __init__(self):
     super(ClassState, self).__init__()
@@ -406,20 +405,7 @@ class ClassState(PotentiallyFinalRegexState):
     self.transitions[self.OR_FROM_TOKEN] = self.OR_FROM
 
   def do_action(self, parser):
-    parser.current_fragment += parser.current_token + self.CLOSE_CLASS_SYMBOL
-
-class CloseClassRange(PotentiallyFinalRegexState):
-  '''
-  State in which the upper limit of a character range has been specified
-  '''
-  def __init__(self):
-    super(CloseClassRange, self).__init__()
-    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
-    self.transitions[self.OR_OF_TOKEN] = self.OR_OF
-    self.transitions[self.OR_FROM_TOKEN] = self.OR_FROM
-
-  def do_action(self, parser):
-    parser.current_fragment += re.escape(parser.current_token) + self.CLOSE_CLASS_SYMBOL
+    parser.end_class()
 
 class To(RegexState):
   '''
@@ -431,7 +417,7 @@ class To(RegexState):
 
   def get_token_not_found_transition(self, token):
     if len(token) == 1 and token >= self.start_range:
-      return self.CLOSE_CLASS_RANGE
+      return self.CLASS_STATE
     else:
       return self.INVALID_CLASS_RANGE_ERROR_STATE
 
@@ -651,7 +637,6 @@ class RegexStateFactory(object):
                        RegexState.INVALID_CLASS_RANGE_ERROR_STATE: InvalidClassRangeErrorState(),
                        RegexState.TO: To(),
                        RegexState.OPEN_CLASS_RANGE: OpenClassRange(),
-                       RegexState.CLOSE_CLASS_RANGE: CloseClassRange(),
                        RegexState.OR_FROM: OrFrom()}
 
   @staticmethod

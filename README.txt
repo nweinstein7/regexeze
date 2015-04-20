@@ -187,11 +187,11 @@ TODO:
 3. Classes
   - typical classes (of) [DONE]
   - complement classes (except)
-  - range (from ... to)
-  - escaping inside classes
+  - range (from ... to) [DONE]
+  - escaping inside classes [DONE]
   - or with classes (multiple items in class)
     - or_of [DONE]
-    - or_from
+    - or_from [DONE]
     - or_except
 4. Special characters (alphanumeric, decimal, whitespace)
 5. Start, end
