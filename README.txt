@@ -10,7 +10,7 @@ $ (Dollar sign): end_of_string
 | (pipe): or
 [] (brackets - class, match any of them): of (after any_char)
                                           also supports or_of, e.g. "expr: any_char of 'a' or_of 'b' or_of 'c';"
-[a-c] (dash - range of chars): from 'a' until 'b' (after any_char)
+[a-c] (dash - range of chars): from 'a' to 'b' (after any_char)
 [^5] (carat inside a class - complement of the class): except (after any_char)
 
 KEYWORDS:
@@ -36,7 +36,7 @@ non_alphanumeric
 except
 of
 from
-until
+to
 greedy
 
 ca*t
@@ -187,7 +187,7 @@ TODO:
 3. Classes
   - typical classes (of) [DONE]
   - complement classes (except)
-  - range (from ... until)
+  - range (from ... to)
   - escaping inside classes
   - or with classes (multiple items in class)
     - or_of [DONE]
@@ -198,7 +198,8 @@ TODO:
   - not modifiable!
   -start_of_string, end_of_string
 6. Group names
-7. Escaping in text
+7. Escaping in text [DONE]
 8. Documentation
 9. Make sure names (of module, classes, etc.) are sufficiently descriptive
 10. Show error location is buggy :/
+11. Validate that from m up_to n, n must be > m

@@ -338,13 +338,85 @@ class test_regex_parser_machine(unittest.TestCase):
     self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'Empty input to character class should result in error.')
 
+    #Test simple class range
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'a' to 'z';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([a-z])', 'Should be able to parse a simple class range.')
+
+    #Test simple class range between single char
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'a' to 'a';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([a-a])', 'Should be able to parse a simple class range bounded by the same char.')
+
+    #Test class range with special characters
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from '$' to '@';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([\$-\@])', 'Should be able to parse a class range with special characters.')
+
+    #Test invalid class range - more than one char in from
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'abc' to 'z';""''')
+    self.assertRaises(regex_errors.InvalidClassRangeError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidClassRangeErrorState), 'More than one char in the from value should cause an InvalidClassRange error')
+
+    #Test invalid class range - more than one char in to
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'a' to 'xyz';""''')
+    self.assertRaises(regex_errors.InvalidClassRangeError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidClassRangeErrorState), 'More than one char in the to value should cause an InvalidClassRange error')
+
+    #Test invalid class range - wrong order
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'z' to 'a';""''')
+    self.assertRaises(regex_errors.InvalidClassRangeError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidClassRangeErrorState), 'Incorrect order should result in InvalidClassRangeError')
+
+    #Test incomplete class range
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from""''')
+    self.assertRaises(regex_errors.IncompleteClassRangeError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassRangeErrorState), 'Ending after from should result in incomplete class range error')
+
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'z'""''')
+    self.assertRaises(regex_errors.IncompleteClassRangeError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassRangeErrorState), 'Ending after from value should result in IncompleteClassRangeError')
+
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'z' to""''')
+    self.assertRaises(regex_errors.IncompleteClassRangeError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassRangeErrorState), 'Ending after to should result in IncompleteClassRangeError')
+
+    #Test or_from (simple)
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'a' to 'c' or_from 'd' to 'g';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([a-cd-g])', 'Should be able to parse two class ranges connected using or_from.')
+
+    #Test or_from (special chars)
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'a' to 'c' or_from '$' to '@';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([a-c\$-\@])', 'Should be able to parse two class ranges including special characters connected using or_from.')
+
+    #Test multiple or_from in a row
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'a' to 'c' or_from '$' to '@' or_from 'd' to 'f' or_from 'k' to 'z';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([a-c\$-\@d-fk-z])', 'Should be able to parse multiple character ranges strung together using or_from')
+
+    #Test of to or_from
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_from 'd' to 'f';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([abcd-f])', 'Should be able to transition from "of" to "or_from"')
+
+    #Test from/to to or_of
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'd' to 'f' or_of 'xyz';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([d-fxyz])', 'Should be able to transition from "from/to" to "or_of"')
+
+    #Test or_from interleaved with or_of
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_from 'c' to 'e' or_from '$' to '@' or_of 'def' or_from 'k' to 'z';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([abcc-e\$-\@defk-z])', 'Should be able to go from of to or_from to or_of to or_from')
+
     #TEST ACCURACY OF REGEXES
     #test special characters
     self.rpm = regex_interface.RegexParserMachine('''expr: "$\." for one_or_more;''')
     self.rpm.parse()
     matcher = re.compile(self.rpm.ret_val)
     self.assertEquals(matcher.match('$\.$\.').group(0), '$\.$\.', "Should be able to use ret_val as a regular expression to match a string containing special characters")
-
 
 if __name__ == '__main__':
     unittest.main()

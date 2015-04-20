@@ -1,5 +1,6 @@
 import regex_errors
 import regex_interface
+import re
 
 class RegexState(object):
   '''
@@ -44,7 +45,13 @@ class RegexState(object):
   CLASS_STATE = 'ClassState'
   INCOMPLETE_CLASS_ERROR_STATE = 'IncompleteClassErrorState'
   OR_OF = 'OrOf'
-  
+  FROM = 'From'
+  INCOMPLETE_CLASS_RANGE_ERROR_STATE = 'IncompleteClassRangeErrorState'
+  INVALID_CLASS_RANGE_ERROR_STATE = 'InvalidClassRangeErrorState'
+  TO = 'To'
+  OPEN_CLASS_RANGE = 'OpenClassRange'
+  CLOSE_CLASS_RANGE = 'CloseClassRange'
+  OR_FROM = 'OrFrom'
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
   NOT_GREEDY_SYMBOL = '?'
@@ -54,6 +61,7 @@ class RegexState(object):
   M_REPETITIONS_FORMAT = '{{{0}}}'
   OPEN_CLASS_SYMBOL = '['
   CLOSE_CLASS_SYMBOL = ']'
+  CLASS_RANGE_SYMBOL = '-'
 
   END_OF_INPUT_TOKEN = 'end_of_input'
   GREEDY_TOKEN = 'greedy'
@@ -72,6 +80,9 @@ class RegexState(object):
   OR_TOKEN = 'or'
   CLASS_TOKEN = 'of'
   OR_OF_TOKEN = 'or_of'
+  FROM_TOKEN = 'from'
+  TO_TOKEN = 'to'
+  OR_FROM_TOKEN = 'or_from'
 
   def __init__(self):
     self.transitions = {}
@@ -174,6 +185,14 @@ class IncompleteExpressionErrorState(RegexState):
 class IncompleteClassErrorState(RegexState):
   def do_action(self, parser):
     raise regex_errors.IncompleteClassError(parser)
+
+class IncompleteClassRangeErrorState(RegexState):
+  def do_action(self, parser):
+    raise regex_errors.IncompleteClassRangeError(parser)
+
+class InvalidClassRangeErrorState(RegexState):
+  def do_action(self, parser):
+    raise regex_errors.InvalidClassRangeError(parser)
 
 class IncompleteOrErrorState(RegexState):
   def do_action(self, parser):
@@ -343,6 +362,23 @@ class CheckNumberOfTimes(RegexState):
       return self.M_REPETITIONS
     return self.INVALID_REPETITIONS_ERROR_STATE
 
+class OrFrom(RegexState):
+  '''
+  State in which a class has been continued using the keyword or_from, indicating a new range of chars
+  '''
+  def __init__(self):
+    super(OrFrom, self).__init__()
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_CLASS_ERROR_STATE
+
+  def get_token_not_found_transition(self, token):
+    if len(token) == 1:
+      return self.OPEN_CLASS_RANGE
+    else:
+      return self.INVALID_CLASS_RANGE_ERROR_STATE
+
+  def do_action(self, parser):
+    parser.current_fragment = parser.current_fragment[:-1]
+
 class OrOf(RegexState):
   '''
   State in which a class has been continued using the keyword or_of
@@ -367,9 +403,74 @@ class ClassState(PotentiallyFinalRegexState):
     super(ClassState, self).__init__()
     self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
     self.transitions[self.OR_OF_TOKEN] = self.OR_OF
+    self.transitions[self.OR_FROM_TOKEN] = self.OR_FROM
 
   def do_action(self, parser):
     parser.current_fragment += parser.current_token + self.CLOSE_CLASS_SYMBOL
+
+class CloseClassRange(PotentiallyFinalRegexState):
+  '''
+  State in which the upper limit of a character range has been specified
+  '''
+  def __init__(self):
+    super(CloseClassRange, self).__init__()
+    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
+    self.transitions[self.OR_OF_TOKEN] = self.OR_OF
+    self.transitions[self.OR_FROM_TOKEN] = self.OR_FROM
+
+  def do_action(self, parser):
+    parser.current_fragment += re.escape(parser.current_token) + self.CLOSE_CLASS_SYMBOL
+
+class To(RegexState):
+  '''
+  State in which the keyword "to" has been invoked, indicating the upper limit of a character range in a class
+  '''
+  def __init__(self):
+    super(To, self).__init__()
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_CLASS_RANGE_ERROR_STATE
+
+  def get_token_not_found_transition(self, token):
+    if len(token) == 1 and token >= self.start_range:
+      return self.CLOSE_CLASS_RANGE
+    else:
+      return self.INVALID_CLASS_RANGE_ERROR_STATE
+
+  def do_action(self, parser):
+    #Get the start of the range from the current_fragment string
+    self.start_range = parser.current_start_range
+
+class OpenClassRange(RegexState):
+  '''
+  State in which a start of a character range has been indicated
+  '''
+  def __init__(self):
+    super(OpenClassRange, self).__init__()
+    self.transitions[self.TO_TOKEN] = self.TO
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_CLASS_RANGE_ERROR_STATE
+
+  def do_action(self, parser):
+    parser.current_start_range = parser.current_token
+    parser.current_fragment += re.escape(parser.current_token) + self.CLASS_RANGE_SYMBOL
+
+  def get_token_not_found_transition(self, token):
+    return self.INVALID_CLASS_RANGE_ERROR_STATE
+
+class From(RegexState):
+  '''
+  State after keyword "from" has been invoked indicating a class containing a range between characters
+  '''
+  def __init__(self):
+    super(From, self).__init__()
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_CLASS_RANGE_ERROR_STATE
+
+  def get_token_not_found_transition(self, token):
+    if len(token) == 1:
+      return self.OPEN_CLASS_RANGE
+    else:
+      return self.INVALID_CLASS_RANGE_ERROR_STATE
+
+  def do_action(self, parser):
+    parser.current_fragment = parser.OPEN_PARENTHESIS + self.OPEN_CLASS_SYMBOL
 
 class OpenClass(RegexState):
   '''
@@ -393,6 +494,7 @@ class AnyChar(PotentiallyFinalRegexState):
     super(AnyChar, self).__init__()
     self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
     self.transitions[self.CLASS_TOKEN] = self.OPEN_CLASS
+    self.transitions[self.FROM_TOKEN] = self.FROM
 
   def do_action(self, parser):
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.ANY_CHAR_SYMBOL
@@ -543,7 +645,14 @@ class RegexStateFactory(object):
                        RegexState.OPEN_CLASS: OpenClass(),
                        RegexState.CLASS_STATE: ClassState(),
                        RegexState.INCOMPLETE_CLASS_ERROR_STATE: IncompleteClassErrorState(),
-                       RegexState.OR_OF: OrOf()}
+                       RegexState.OR_OF: OrOf(),
+                       RegexState.FROM: From(),
+                       RegexState.INCOMPLETE_CLASS_RANGE_ERROR_STATE: IncompleteClassRangeErrorState(),
+                       RegexState.INVALID_CLASS_RANGE_ERROR_STATE: InvalidClassRangeErrorState(),
+                       RegexState.TO: To(),
+                       RegexState.OPEN_CLASS_RANGE: OpenClassRange(),
+                       RegexState.CLOSE_CLASS_RANGE: CloseClassRange(),
+                       RegexState.OR_FROM: OrFrom()}
 
   @staticmethod
   def get_next_state(state, token):

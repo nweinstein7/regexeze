@@ -57,6 +57,23 @@ class IncompleteClassError(Error):
     self.msg = 'Keyword "of" must be followed by the set of characters to be included in the class.\nEmpty string can not be put into character class.'
     self.msg += '\n' + self.show_error_location(parser)
 
+class IncompleteClassRangeError(Error):
+  '''
+  Exception raised when an expression ends on the keyword "from" or "to", indicating a range in a class
+  '''
+  def __init__(self, parser):
+    self.msg = 'When specifying a range of characters in a character class, you must have both a "from" value and a "to" value.\nFor example: expr: any_char from "a" to "z";'
+    self.msg += '\n' + self.show_error_location(parser)
+
+class InvalidClassRangeError(Error):
+  '''
+  Exception raised when a class range indicated is somehow invalid
+  To be valid, class ranges must be between single characters that are in order
+  '''
+  def __init__(self, parser):
+    self.msg = 'Class range must be between single characters, and they must be in order.'
+    self.msg += '\n' + self.show_error_location(parser)
+
 class IncompleteOrError(Error):
   '''
   Exception raised when expression ends right after or symbol (|)

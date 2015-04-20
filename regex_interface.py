@@ -20,6 +20,8 @@ class RegexParserMachine(object):
   @type child: RegexParserMachine
   @param after_or: whether the parser has hit an or (in which case it should proceed to another expression after semicolon, because that would be confusing)
   @type after_or: bool
+  @param current_start_range: for character ranges, must know the start range in order to determine the order
+  @type current_start_range: char
   '''
   END_OF_INPUT = 'end_of_input'
   OPEN_PARENTHESIS = '('
@@ -37,6 +39,7 @@ class RegexParserMachine(object):
     self.tokenize(self.arg_string)
     self.child = None
     self.after_or = False
+    self.current_start_range = ""
 
   def parse(self, source=""):
    '''
