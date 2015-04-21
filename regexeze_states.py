@@ -40,7 +40,7 @@ class RegexState(object):
   UNCLOSED_BRACKET_ERROR_STATE = 'UnclosedBracketErrorState'
   OR = 'Or'
   INCOMPLETE_OR_ERROR_STATE = 'IncompleteOrErrorState'
-  EXPRESSION_AFTER_OR_ERROR_STATE = 'ExpressionAfterOrErrorState'
+  MULTIPLE_OR_ERROR_STATE = 'MultipleOrErrorState'
   OPEN_CLASS = 'OpenClass'
   CLASS_STATE = 'ClassState'
   INCOMPLETE_CLASS_ERROR_STATE = 'IncompleteClassErrorState'
@@ -134,10 +134,16 @@ class PotentiallyFinalRegexState(RegexState):
     super(PotentiallyFinalRegexState, self).__init__()
     self.transitions[self.END_OF_EXPRESSION_SYMBOL] = self.NEW_EXPRESSION
     self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_EXPRESSION_ERROR_STATE
-    self.transitions[self.OR_TOKEN] = self.OR
 
   def get_token_not_found_transition(self, token):
+    if token == self.OR_TOKEN and self.n_expressions > 0:
+      return self.MULTIPLE_OR_ERROR_STATE
+    elif token == self.OR_TOKEN:
+      return self.OR
     return self.INVALID_MODIFIER_STATE
+
+  def do_action(self, parser):
+    self.n_expressions = parser.n_expressions
 
 class ModifiablePotentiallyFinalRegexState(PotentiallyFinalRegexState):
   '''
@@ -146,6 +152,9 @@ class ModifiablePotentiallyFinalRegexState(PotentiallyFinalRegexState):
   def __init__(self):
     super(ModifiablePotentiallyFinalRegexState, self).__init__()
     self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
+
+  def do_action(self, parser):
+    super(ModifiablePotentiallyFinalRegexState, self).do_action(parser)
 
 class BaseErrorState(RegexState):
   '''
@@ -166,6 +175,7 @@ class NotGreedyNumberOfRepetitionsState(PotentiallyFinalRegexState):
     self.transitions[self.NOT_GREEDY_TOKEN] = self.KEEP_NOT_GREEDY
 
   def do_action(self, parser):
+    super(NotGreedyNumberOfRepetitionsState, self).do_action(parser)
     parser.current_modifier = self.symbol + self.NOT_GREEDY_SYMBOL
 
 class GreedyNumberOfRepetitionsState(PotentiallyFinalRegexState):
@@ -180,6 +190,7 @@ class GreedyNumberOfRepetitionsState(PotentiallyFinalRegexState):
     self.transitions[self.GREEDY_TOKEN] = self.KEEP_GREEDY
 
   def do_action(self, parser):
+    super(GreedyNumberOfRepetitionsState, self).do_action(parser)
     parser.current_modifier = self.symbol
 
 class EndOfExpressions(RegexState):
@@ -218,9 +229,9 @@ class IncompleteOrErrorState(RegexState):
   def do_action(self, parser):
     raise regexeze_errors.IncompleteOrError(parser)
 
-class ExpressionAfterOrErrorState(RegexState):
+class MultipleOrErrorState(RegexState):
   def do_action(self, parser):
-    raise regexeze_errors.ExpressionAfterOrError(parser)
+    raise regexeze_errors.MultipleOrError(parser)
 
 class ColonErrorState(RegexState):
   def do_action(self, parser):
@@ -276,6 +287,7 @@ class SetGreedy(PotentiallyFinalRegexState):
     super(SetGreedy, self).__init__()
 
   def do_action(self, parser):
+    super(SetGreedy, self).do_action(parser)
     parser.current_modifier = parser.current_modifier[:-1]
 
 class KeepGreedy(PotentiallyFinalRegexState):
@@ -293,6 +305,7 @@ class SetNotGreedy(PotentiallyFinalRegexState):
     super(SetNotGreedy, self).__init__()
 
   def do_action(self, parser):
+    super(SetNotGreedy, self).do_action(parser)
     parser.current_modifier = parser.current_modifier + self.NOT_GREEDY_SYMBOL
 
 class KeepNotGreedy(PotentiallyFinalRegexState):
@@ -341,19 +354,18 @@ class UpTo(RegexState):
     else:
       return self.INVALID_REPETITION_RANGE_ERROR_STATE
 
-  def do_action(self, parser):
-    parser.current_modifier = parser.current_modifier[1:-1]
-
 class MUpToNRepetitions(GreedyNumberOfRepetitionsState):
   '''
   State in which between m and n repetitions have been selected
   '''
   def __init__(self):
     super(MUpToNRepetitions, self).__init__()
+    self.symbol = self.M_REPETITIONS_FORMAT
 
   def do_action(self, parser):
-    self.symbol = parser.current_modifier + "," + parser.current_token
-    parser.current_modifier = self.M_REPETITIONS_FORMAT.format(self.symbol)
+    super(MUpToNRepetitions, self).do_action(parser)
+    parser.current_modifier_fragment = parser.current_modifier_fragment + "," + parser.current_token
+    parser.current_modifier = self.symbol.format(parser.current_modifier_fragment)
 
 class MUpToInfinityRepetitions(GreedyNumberOfRepetitionsState):
   '''
@@ -361,10 +373,11 @@ class MUpToInfinityRepetitions(GreedyNumberOfRepetitionsState):
   '''
   def __init__(self):
     super(MUpToInfinityRepetitions, self).__init__()
+    self.symbol = self.M_REPETITIONS_FORMAT
 
   def do_action(self, parser):
-    self.symbol = parser.current_modifier + ","
-    parser.current_modifier = self.M_REPETITIONS_FORMAT.format(self.symbol)
+    parser.current_modifier_fragment = parser.current_modifier_fragment + ","
+    parser.current_modifier = self.symbol.format(parser.current_modifier_fragment)
 
 class MRepetitions(GreedyNumberOfRepetitionsState):
   '''
@@ -373,9 +386,12 @@ class MRepetitions(GreedyNumberOfRepetitionsState):
   def __init__(self):
     super(MRepetitions, self).__init__()
     self.transitions[self.UP_TO_TOKEN] = self.UP_TO
+    self.symbol = self.M_REPETITIONS_FORMAT
 
   def do_action(self, parser):
-    parser.current_modifier = self.M_REPETITIONS_FORMAT.format(parser.current_token)
+    super(MRepetitions, self).do_action(parser)
+    parser.current_modifier_fragment = parser.current_token
+    parser.current_modifier = self.symbol.format(parser.current_modifier_fragment)
 
 class CheckNumberOfTimes(RegexState):
   '''
@@ -451,6 +467,7 @@ class ClassState(ModifiablePotentiallyFinalRegexState):
     self.transitions[self.OR_FROM_TOKEN] = self.OR_FROM
 
   def do_action(self, parser):
+    super(ClassState, self).do_action(parser)
     parser.end_class()
 
 class ComplementClassState(ModifiablePotentiallyFinalRegexState):
@@ -462,6 +479,7 @@ class ComplementClassState(ModifiablePotentiallyFinalRegexState):
     self.transitions[self.OR_EXCEPT_TOKEN] = self.OR_EXCEPT
 
   def do_action(self, parser):
+    super(ComplementClassState, self).do_action(parser)
     parser.end_class()
 
 class To(RegexState):
@@ -556,6 +574,7 @@ class AnyChar(ModifiablePotentiallyFinalRegexState):
     self.transitions[self.EXCEPT_TOKEN] = self.EXCEPT
 
   def do_action(self, parser):
+    super(AnyChar, self).do_action(parser)
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.ANY_CHAR_SYMBOL
 
 class StartOfString(PotentiallyFinalRegexState):
@@ -566,6 +585,7 @@ class StartOfString(PotentiallyFinalRegexState):
     super(StartOfString, self).__init__()
 
   def do_action(self, parser):
+    super(StartOfString, self).do_action(parser)
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.START_OF_STRING_SYMBOL
 
 class EndOfString(PotentiallyFinalRegexState):
@@ -576,6 +596,7 @@ class EndOfString(PotentiallyFinalRegexState):
     super(EndOfString, self).__init__()
 
   def do_action(self, parser):
+    super(EndOfString, self).do_action(parser)
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.END_OF_STRING_SYMBOL
 
 class PlainText(ModifiablePotentiallyFinalRegexState):
@@ -586,6 +607,7 @@ class PlainText(ModifiablePotentiallyFinalRegexState):
     super(PlainText, self).__init__()
 
   def do_action(self, parser):
+    super(PlainText, self).do_action(parser)
     parser.process_current_token_as_plain_text()
 
 class EndNestedExpression(ModifiablePotentiallyFinalRegexState):
@@ -596,6 +618,7 @@ class EndNestedExpression(ModifiablePotentiallyFinalRegexState):
     super(EndNestedExpression, self).__init__()
 
   def do_action(self, parser):
+    super(EndNestedExpression, self).do_action(parser)
     parser.child.end()
     parser.current_fragment = parser.OPEN_PARENTHESIS + parser.child.ret_val
 
@@ -635,6 +658,7 @@ class NewNestedExpression(ModifiablePotentiallyFinalRegexState):
     self.transitions[self.END_OF_INPUT_TOKEN] = self.UNCLOSED_BRACKET_ERROR_STATE
 
   def do_action(self, parser):
+    super(NewNestedExpression, self).do_action(parser)
     parser.process_current_token_as_plain_text()
 
   def get_token_not_found_transition(self, token):
@@ -661,12 +685,13 @@ class NewExpression(RegexState):
 
   def get_token_not_found_transition(self, token):
     if token == self.EXPRESSION_TOKEN and self.after_or:
-      return self.EXPRESSION_AFTER_OR_ERROR_STATE
+      return self.MULTIPLE_OR_ERROR_STATE
     elif token == self.EXPRESSION_TOKEN:
       return self.CHECK_COLON
     return self.NEW_EXPRESSION_ERROR_STATE
 
   def do_action(self, parser):
+    parser.n_expressions += 1
     parser.add_current_fragment()
     self.after_or = parser.after_or
 
@@ -705,7 +730,7 @@ class RegexStateFactory(object):
                        RegexState.NEW_NESTED_EXPRESSION_ERROR_STATE: NewNestedExpressionErrorState(),
                        RegexState.OR: Or(),
                        RegexState.INCOMPLETE_OR_ERROR_STATE: IncompleteOrErrorState(),
-                       RegexState.EXPRESSION_AFTER_OR_ERROR_STATE: ExpressionAfterOrErrorState(),
+                       RegexState.MULTIPLE_OR_ERROR_STATE: MultipleOrErrorState(),
                        RegexState.OPEN_CLASS: OpenClass(),
                        RegexState.CLASS_STATE: ClassState(),
                        RegexState.INCOMPLETE_CLASS_ERROR_STATE: IncompleteClassErrorState(),

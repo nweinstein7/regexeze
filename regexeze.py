@@ -12,6 +12,10 @@ class RegexParserMachine(object):
   @type arg_string: string
   @param current_fragment: the current expr fragment being created
   @type current_fragment: string
+  @param current_modifier: the current modifier being added to the expr
+  @type current_modifier: string
+  @param current_modifier_fragment: for multipart modifiers, the current piece of modifier being stored
+  @type current_modifier_fragment: string
   @param ret_val: the full regex to be returned
   @type ret_val: string
   @param approximate_location: the approximate position through the arg_string (simply for error reporting, showing where in the string the error is)
@@ -22,6 +26,8 @@ class RegexParserMachine(object):
   @type after_or: bool
   @param current_start_range: for character ranges, must know the start range in order to determine the order
   @type current_start_range: char
+  @param n_expressions: number of complete expressions so far (necessary for determining whether or can occur)
+  @type n_expressions: int
   '''
   END_OF_INPUT = 'end_of_input'
   OPEN_PARENTHESIS = '('
@@ -34,12 +40,14 @@ class RegexParserMachine(object):
     self.arg_string = arg_string
     self.current_fragment = ""
     self.current_modifier = ""
+    self.current_modifier_fragment = ""
     self.ret_val = ""
     self.approximate_location = 0
     self.recursive_stack = []
     self.tokenize(self.arg_string)
     self.child = None
     self.after_or = False
+    self.n_expressions = 0
     self.current_start_range = ""
 
   def parse(self, source=""):

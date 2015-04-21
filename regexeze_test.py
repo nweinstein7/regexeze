@@ -243,7 +243,7 @@ class test_regex_parser_machine(unittest.TestCase):
     #Test m up_to infinity repetitions
     self.rpm = regexeze.RegexParserMachine('expr: "a" for 10 up_to infinity;')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '(a){10,}', 'Should be able to parse number range of reptitions, where the upper bound is unlimited (infinity keyword)')
+    self.assertEquals(self.rpm.ret_val, '(a){10,}', 'Should be able to parse number range of repetitions, where the upper bound is unlimited (infinity keyword)')
 
     #TEST NESTING
     #Simple nesting (1 layer)
@@ -304,8 +304,25 @@ class test_regex_parser_machine(unittest.TestCase):
 
     #Expression after or
     self.rpm = regexeze.RegexParserMachine('''expr: 'a' or 'b'; expr: 'c';''')
-    self.assertRaises(regexeze_errors.ExpressionAfterOrError, self.rpm.parse)
-    self.assertTrue(isinstance(self.rpm.state, regexeze_states.ExpressionAfterOrErrorState), 'There can be only one expression containing or - should use nesting for or statements if you want more than one.')
+    self.assertRaises(regexeze_errors.MultipleOrError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.MultipleOrErrorState), 'There can be only one expression containing or - should use nesting for or statements if you want more than one.')
+
+    #Or after expression
+    self.rpm = regexeze.RegexParserMachine('''expr: 'a'; expr: 'b' or 'c';''')
+    self.assertRaises(regexeze_errors.MultipleOrError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.MultipleOrErrorState), 'There can be only one expression containing or - should use nesting for or statements if you want more than one.')
+
+    self.rpm = regexeze.RegexParserMachine('''expr: 'a' for 1 up_to infinity; expr: any_char or 'c';''')
+    self.assertRaises(regexeze_errors.MultipleOrError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.MultipleOrErrorState), 'There can be only one expression containing or - should use nesting for or statements if you want more than one.')
+
+    self.rpm = regexeze.RegexParserMachine('''expr: start_of_string; expr: start_of_string or 'c';''')
+    self.assertRaises(regexeze_errors.MultipleOrError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.MultipleOrErrorState), 'There can be only one expression containing or - should use nesting for or statements if you want more than one.')
+
+    self.rpm = regexeze.RegexParserMachine('''expr: any_char except "abc"; expr: any_char of "def" or 'c';''')
+    self.assertRaises(regexeze_errors.MultipleOrError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.MultipleOrErrorState), 'There can be only one expression containing or - should use nesting for or statements if you want more than one.')
 
     #Multiple ors in a row
     self.rpm = regexeze.RegexParserMachine('''expr: 'a' or 'b' or 'c' or 'd';''')

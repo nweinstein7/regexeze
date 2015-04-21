@@ -80,12 +80,12 @@ class IncompleteOrError(Error):
     self.msg = 'Invalid syntax after or.\nTo make an empty or alternative, remember to put the empty string in quotes and still end with a semicolon.'
     self.msg += '\n' + self.show_error_location(parser)
 
-class ExpressionAfterOrError(Error):
+class MultipleOrError(Error):
   '''
-  Exception raised when expression ends right after or symbol (|)
+  Exception raised when multiple expressions occur at the same nesting level as an or
   '''
   def __init__(self, parser):
-    self.msg = '''Expressions involving the keyword or cannot be followed by other expressions.\nTo include or statements in larger expressions, nest them.\nFor example, this will not work: expr: "a" or "b"; expr: "c";\nBut, if you wanted to have either a or b followed by c, you could do this: expr: [ expr: "a" or "b";]; expr: "c";'''
+    self.msg = '''Expressions involving the keyword or cannot be follow or be followed by other expressions.\nTo include or statements in larger expressions, nest them.\nFor example, this will not work: expr: "a" or "b"; expr: "c";\nNether will this: expr: "a"; expr: "b" or "c";\nBut, if you wanted to have either a or b followed by c, you could do this: expr: [ expr: "a" or "b";]; expr: "c";\nThe same logic applies for a followed by b or c.'''
     self.msg += '\n' + self.show_error_location(parser)
 
 class ColonError(Error):
