@@ -1,2 +1,5 @@
 #PYC FILES#
 *.pyc
+
+#DESIGNDOC#
+DESIGNDOC.txt
