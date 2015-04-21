@@ -336,7 +336,7 @@ class test_regex_parser_machine(unittest.TestCase):
     #Test or_of in sequence
     self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of 'def' or_of 'ghi';''')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, '([abcdefghi])', 'Should be able to parse complex class expression consist of several or_of statements in a row.')
+    self.assertEquals(self.rpm.ret_val, '([abcdefghi])', 'Should be able to parse complex class expression consisting of several or_of statements in a row.')
 
     #Test incomplete or_of statement
     self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of''')
@@ -480,6 +480,35 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm = regex_interface.RegexParserMachine('''expr: any_char except 'abc' or_from 'def' ""''')
     self.assertRaises(regex_errors.InvalidModifierError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidModifierState), 'Wrong type of or after except leads to invalid modifier state')
+
+    #TEST START OF STRING AND END OF STRING
+    #Test simple start of string/end of string
+    self.rpm = regex_interface.RegexParserMachine('''expr: start_of_string; expr: 'abc'; expr: end_of_string;''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(^)(abc)($)', 'Should be able to parse simple start_of_string/end_of_string.')
+
+    #Test incomplete start_of_string/end_of_string
+    self.rpm = regex_interface.RegexParserMachine('''expr: start_of_string''')
+    self.assertRaises(regex_errors.IncompleteExpressionError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteExpressionErrorState),
+                    'When expression reaches end of input after start_of_string, should end up in IncompleteExpressionErrorState')
+
+    self.rpm = regex_interface.RegexParserMachine('''expr: end_of_string''')
+    self.assertRaises(regex_errors.IncompleteExpressionError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteExpressionErrorState),
+                    'When expression reaches end of input after end_of_string, should end up in IncompleteExpressionErrorState')
+
+    #Test invalid modifier after start_of_string/end_of_string
+    self.rpm = regex_interface.RegexParserMachine('''expr: start_of_string for 10;''')
+    self.assertRaises(regex_errors.InvalidModifierError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidModifierState),
+                    'Should not be able to modify start_of_string')
+
+    self.rpm = regex_interface.RegexParserMachine('''expr: end_of_string for 10''')
+    self.assertRaises(regex_errors.InvalidModifierError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidModifierState),
+                    'Should not be able to modify end_of_string')
+
 
     #TEST ACCURACY OF REGEXES
     #test special characters

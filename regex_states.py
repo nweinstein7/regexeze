@@ -54,6 +54,8 @@ class RegexState(object):
   EXCEPT = 'Except'
   COMPLEMENT_CLASS_STATE = 'ComplementClassState'
   OR_EXCEPT = 'OrExcept'
+  START_OF_STRING = 'StartOfString'
+  END_OF_STRING = 'EndOfString'
 
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
@@ -66,6 +68,8 @@ class RegexState(object):
   CLOSE_CLASS_SYMBOL = ']'
   CLASS_RANGE_SYMBOL = '-'
   COMPLEMENT_CLASS_SYMBOL = '^'
+  START_OF_STRING_SYMBOL = '^'
+  END_OF_STRING_SYMBOL = '$'
 
   END_OF_INPUT_TOKEN = 'end_of_input'
   GREEDY_TOKEN = 'greedy'
@@ -89,6 +93,8 @@ class RegexState(object):
   OR_FROM_TOKEN = 'or_from'
   EXCEPT_TOKEN = 'except'
   OR_EXCEPT_TOKEN = 'or_except'
+  START_OF_STRING_TOKEN = 'start_of_string'
+  END_OF_STRING_TOKEN = 'end_of_string'
 
   def __init__(self):
     self.transitions = {}
@@ -232,18 +238,28 @@ class InvalidRepetitionRangeErrorState(RegexState):
   def do_action(self, parser):
     raise regex_errors.InvalidRepetitionRangeError(parser)
 
-class Or(RegexState):
-  '''
-  Inserts a pipe between first and last
-  '''
+class StartExpression(RegexState):
   def __init__(self):
-    super(Or, self).__init__()
+    super(StartExpression, self).__init__()
     self.transitions[self.ANY_CHAR_TOKEN] = self.ANY_CHAR
-    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_OR_ERROR_STATE
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_EXPRESSION_ERROR_STATE
     self.transitions[self.NESTED_OPEN_TOKEN] = self.NEW_NESTED_EXPRESSION
+    self.transitions[self.START_OF_STRING_TOKEN] = self.START_OF_STRING
+    self.transitions[self.END_OF_STRING_TOKEN] = self.END_OF_STRING
 
   def get_token_not_found_transition(self, token):
     return self.PLAIN_TEXT
+
+  def do_action(self, parser):
+    parser.child = regex_interface.RegexParserMachine('')
+
+class Or(StartExpression):
+  '''
+  Inserts a pipe between two alternatives
+  '''
+  def __init__(self):
+    super(Or, self).__init__()
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_OR_ERROR_STATE
 
   def do_action(self, parser):
     parser.add_current_fragment()
@@ -542,6 +558,26 @@ class AnyChar(ModifiablePotentiallyFinalRegexState):
   def do_action(self, parser):
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.ANY_CHAR_SYMBOL
 
+class StartOfString(PotentiallyFinalRegexState):
+  '''
+  State in which the current fragment consists of the start of string symbol (^)
+  '''
+  def __init__(self):
+    super(StartOfString, self).__init__()
+
+  def do_action(self, parser):
+    parser.current_fragment = parser.OPEN_PARENTHESIS + self.START_OF_STRING_SYMBOL
+
+class EndOfString(PotentiallyFinalRegexState):
+  '''
+  State in which the current fragment consists of the end of string symbol ($)
+  '''
+  def __init__(self):
+    super(EndOfString, self).__init__()
+
+  def do_action(self, parser):
+    parser.current_fragment = parser.OPEN_PARENTHESIS + self.END_OF_STRING_SYMBOL
+
 class PlainText(ModifiablePotentiallyFinalRegexState):
   '''
   State in which the current fragment consists of plain text (no keyword)
@@ -603,19 +639,6 @@ class NewNestedExpression(ModifiablePotentiallyFinalRegexState):
 
   def get_token_not_found_transition(self, token):
     return self.NEW_NESTED_EXPRESSION_ERROR_STATE
-
-class StartExpression(RegexState):
-  def __init__(self):
-    super(StartExpression, self).__init__()
-    self.transitions[self.ANY_CHAR_TOKEN] = self.ANY_CHAR
-    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_EXPRESSION_ERROR_STATE
-    self.transitions[self.NESTED_OPEN_TOKEN] = self.NEW_NESTED_EXPRESSION
-
-  def get_token_not_found_transition(self, token):
-    return self.PLAIN_TEXT
-
-  def do_action(self, parser):
-    parser.child = regex_interface.RegexParserMachine('')
 
 class CheckColon(RegexState):
   def __init__(self):
@@ -695,7 +718,9 @@ class RegexStateFactory(object):
                        RegexState.OR_FROM: OrFrom(),
                        RegexState.EXCEPT: Except(),
                        RegexState.OR_EXCEPT: OrExcept(),
-                       RegexState.COMPLEMENT_CLASS_STATE: ComplementClassState()}
+                       RegexState.COMPLEMENT_CLASS_STATE: ComplementClassState(),
+                       RegexState.START_OF_STRING: StartOfString(),
+                       RegexState.END_OF_STRING: EndOfString()}
 
   @staticmethod
   def get_next_state(state, token):

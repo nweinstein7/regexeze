@@ -103,7 +103,7 @@ class InvalidModifierError(Error):
   Exception raised when an expr value is followed by something other than a key word or end bracket
   '''
   def __init__(self, parser):
-    self.msg = '''Invalid modifier for an expression.\nPossible Causes:\n- A missing semi-colon at the end of an expression\n- A misplaced "expr:" after the keyword "or"\n- An empty expression or expression with a special character that is not put in quotes.\n- Incorrect usage of or_of, or_except, and or_from: or_of and or_except are valid after both "of" and "from...to" expressions, but or_except can only follow "except" expressions'''
+    self.msg = '''Invalid modifier for an expression.\nPossible Causes:\n- A missing semi-colon at the end of an expression\n- A misplaced "expr:" after the keyword "or"\n- An empty expression or expression with a special character that is not put in quotes.\n- Incorrect usage of or_of, or_except, and or_from: or_of and or_except are valid after both "of" and "from...to" expressions, but or_except can only follow "except" expressions\n- Modifying an unmodifiable expression, such as start_of_string or end_of_string'''
     self.msg += '\n' + self.show_error_location(parser)
 
 class InvalidRepetitionsError(Error):

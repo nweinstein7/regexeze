@@ -194,7 +194,7 @@ TODO:
     - or_from [DONE]
     - or_except [DONE]
 4. Special characters (alphanumeric, decimal, whitespace)
-5. Start, end
+5. Start, end [DONE]
   - not modifiable!
   -start_of_string, end_of_string
 6. Group names
