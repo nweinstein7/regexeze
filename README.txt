@@ -200,6 +200,8 @@ TODO:
 6. Group names
 7. Escaping in text [DONE]
 8. Documentation
+  --help should display informative concise help
 9. Make sure names (of module, classes, etc.) are sufficiently descriptive
+  regexeze
 10. Show error location is buggy :/
 11. Validate that from m up_to n, n must be > m

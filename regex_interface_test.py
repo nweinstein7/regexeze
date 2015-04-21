@@ -251,10 +251,15 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '((a))', 'Simple nested expression should end up with expression inside two sets of parentheses')
 
-    #Complex nesting (2 layer)
+    #Complex nesting (3 layer)
     self.rpm = regex_interface.RegexParserMachine('''expr: [expr: [expr: 'abc' for zero_or_more greedy;]; expr: 'hello';] for 1;''')
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '(((abc)*)(hello)){1}', 'Complex nested expressions should be parsed correctly')
+
+    #Deep nesting (5 layer)
+    self.rpm = regex_interface.RegexParserMachine('''expr: [expr: [expr: [expr: [expr: 'abc';];];];];''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(((((abc)))))', 'Deeply nested expressions should be parsed correctly')
 
     #Ending before brackets are closed
     self.rpm = regex_interface.RegexParserMachine('''expr: [expr: 'a';''')
