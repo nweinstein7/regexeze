@@ -1,5 +1,5 @@
 import shlex
-import regex_states
+import regexeze_states
 import sys
 import re
 
@@ -7,7 +7,7 @@ class RegexParserMachine(object):
   '''
   A deterministic finite state machine for validating and parsing regex language
   @param state: the state of the machine
-  @type state: regex_states.RegexState
+  @type state: regexeze_states.RegexState
   @param arg_string: the input to the regex parser - should be in proper syntax
   @type arg_string: string
   @param current_fragment: the current expr fragment being created
@@ -30,7 +30,7 @@ class RegexParserMachine(object):
   CLOSE_CLASS_SYMBOL = ']'
 
   def __init__(self, arg_string=""):
-    self.state = regex_states.NewExpression()
+    self.state = regexeze_states.NewExpression()
     self.arg_string = arg_string
     self.current_fragment = ""
     self.current_modifier = ""
@@ -76,7 +76,7 @@ class RegexParserMachine(object):
 
   def process_token(self, token):
     self.current_token = token
-    self.state = regex_states.RegexStateFactory.get_next_state(self.state, token)
+    self.state = regexeze_states.RegexStateFactory.get_next_state(self.state, token)
     self.state.do_action(self)
     if token != self.END_OF_INPUT:
       self.approximate_location += len(token)

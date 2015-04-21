@@ -1,5 +1,5 @@
-import regex_errors
-import regex_interface
+import regexeze_errors
+import regexeze
 import re
 
 class RegexState(object):
@@ -152,7 +152,7 @@ class BaseErrorState(RegexState):
   State for generic errors (placeholder - ideally, every eventuality will have a specific error)
   '''
   def do_action(self, parser):
-    raise regex_errors.Error(parser)
+    raise regexeze_errors.Error(parser)
 
 class NotGreedyNumberOfRepetitionsState(PotentiallyFinalRegexState):
   '''
@@ -188,55 +188,55 @@ class EndOfExpressions(RegexState):
 
 class NewExpressionErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.NewExpressionError(parser)
+    raise regexeze_errors.NewExpressionError(parser)
 
 class NewNestedExpressionErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.NewNestedExpressionError(parser)
+    raise regexeze_errors.NewNestedExpressionError(parser)
 
 class UnclosedBracketErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.UnclosedBracketError(parser)
+    raise regexeze_errors.UnclosedBracketError(parser)
 
 class IncompleteExpressionErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.IncompleteExpressionError(parser)
+    raise regexeze_errors.IncompleteExpressionError(parser)
 
 class IncompleteClassErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.IncompleteClassError(parser)
+    raise regexeze_errors.IncompleteClassError(parser)
 
 class IncompleteClassRangeErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.IncompleteClassRangeError(parser)
+    raise regexeze_errors.IncompleteClassRangeError(parser)
 
 class InvalidClassRangeErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.InvalidClassRangeError(parser)
+    raise regexeze_errors.InvalidClassRangeError(parser)
 
 class IncompleteOrErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.IncompleteOrError(parser)
+    raise regexeze_errors.IncompleteOrError(parser)
 
 class ExpressionAfterOrErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.ExpressionAfterOrError(parser)
+    raise regexeze_errors.ExpressionAfterOrError(parser)
 
 class ColonErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.ColonError(parser)
+    raise regexeze_errors.ColonError(parser)
 
 class InvalidModifierState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.InvalidModifierError(parser)
+    raise regexeze_errors.InvalidModifierError(parser)
 
 class InvalidRepetitionsErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.InvalidRepetitionsError(parser)
+    raise regexeze_errors.InvalidRepetitionsError(parser)
 
 class InvalidRepetitionRangeErrorState(RegexState):
   def do_action(self, parser):
-    raise regex_errors.InvalidRepetitionRangeError(parser)
+    raise regexeze_errors.InvalidRepetitionRangeError(parser)
 
 class StartExpression(RegexState):
   def __init__(self):
@@ -251,7 +251,7 @@ class StartExpression(RegexState):
     return self.PLAIN_TEXT
 
   def do_action(self, parser):
-    parser.child = regex_interface.RegexParserMachine('')
+    parser.child = regexeze.RegexParserMachine('')
 
 class Or(StartExpression):
   '''
@@ -264,7 +264,7 @@ class Or(StartExpression):
   def do_action(self, parser):
     parser.add_current_fragment()
     parser.add_or()
-    parser.child = regex_interface.RegexParserMachine('')
+    parser.child = regexeze.RegexParserMachine('')
     parser.after_or = True
 
 

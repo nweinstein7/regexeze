@@ -202,6 +202,6 @@ TODO:
 8. Documentation
   --help should display informative concise help
 9. Make sure names (of module, classes, etc.) are sufficiently descriptive
-  regexeze
+  regexeze [DONE]
 10. Show error location is buggy :/
 11. Validate that from m up_to n, n must be > m
