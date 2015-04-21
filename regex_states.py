@@ -51,6 +51,10 @@ class RegexState(object):
   TO = 'To'
   OPEN_CLASS_RANGE = 'OpenClassRange'
   OR_FROM = 'OrFrom'
+  EXCEPT = 'Except'
+  COMPLEMENT_CLASS_STATE = 'ComplementClassState'
+  OR_EXCEPT = 'OrExcept'
+
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
   NOT_GREEDY_SYMBOL = '?'
@@ -61,6 +65,7 @@ class RegexState(object):
   OPEN_CLASS_SYMBOL = '['
   CLOSE_CLASS_SYMBOL = ']'
   CLASS_RANGE_SYMBOL = '-'
+  COMPLEMENT_CLASS_SYMBOL = '^'
 
   END_OF_INPUT_TOKEN = 'end_of_input'
   GREEDY_TOKEN = 'greedy'
@@ -77,11 +82,13 @@ class RegexState(object):
   COLON_TOKEN = ':'
   CHECK_NUMBER_OF_TIMES_TOKEN = 'for'
   OR_TOKEN = 'or'
-  CLASS_TOKEN = 'of'
+  OF_TOKEN = 'of'
   OR_OF_TOKEN = 'or_of'
   FROM_TOKEN = 'from'
   TO_TOKEN = 'to'
   OR_FROM_TOKEN = 'or_from'
+  EXCEPT_TOKEN = 'except'
+  OR_EXCEPT_TOKEN = 'or_except'
 
   def __init__(self):
     self.transitions = {}
@@ -125,6 +132,14 @@ class PotentiallyFinalRegexState(RegexState):
 
   def get_token_not_found_transition(self, token):
     return self.INVALID_MODIFIER_STATE
+
+class ModifiablePotentiallyFinalRegexState(PotentiallyFinalRegexState):
+  '''
+  Generic parent state for potentially final states which can segue into check number of times states
+  '''
+  def __init__(self):
+    super(ModifiablePotentiallyFinalRegexState, self).__init__()
+    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
 
 class BaseErrorState(RegexState):
   '''
@@ -378,6 +393,22 @@ class OrFrom(RegexState):
   def do_action(self, parser):
     parser.current_fragment = parser.current_fragment[:-1]
 
+class OrExcept(RegexState):
+  '''
+  State in which a complement class has been continued using the keyword or_except
+  '''
+  def __init__(self):
+    super(OrExcept, self).__init__()
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_CLASS_ERROR_STATE
+
+  def do_action(self, parser):
+    parser.current_fragment = parser.current_fragment[:-1]
+
+  def get_token_not_found_transition(self, token):
+    if token == '':
+      return self.INCOMPLETE_CLASS_ERROR_STATE
+    return self.COMPLEMENT_CLASS_STATE
+
 class OrOf(RegexState):
   '''
   State in which a class has been continued using the keyword or_of
@@ -394,15 +425,25 @@ class OrOf(RegexState):
       return self.INCOMPLETE_CLASS_ERROR_STATE
     return self.CLASS_STATE
 
-class ClassState(PotentiallyFinalRegexState):
+class ClassState(ModifiablePotentiallyFinalRegexState):
   '''
   State in which a class value has been indicated (or in which a class range has been ended)
   '''
   def __init__(self):
     super(ClassState, self).__init__()
-    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
     self.transitions[self.OR_OF_TOKEN] = self.OR_OF
     self.transitions[self.OR_FROM_TOKEN] = self.OR_FROM
+
+  def do_action(self, parser):
+    parser.end_class()
+
+class ComplementClassState(ModifiablePotentiallyFinalRegexState):
+  '''
+  State in which a complement class value has been indicated
+  '''
+  def __init__(self):
+    super(ComplementClassState, self).__init__()
+    self.transitions[self.OR_EXCEPT_TOKEN] = self.OR_EXCEPT
 
   def do_action(self, parser):
     parser.end_class()
@@ -441,6 +482,22 @@ class OpenClassRange(RegexState):
   def get_token_not_found_transition(self, token):
     return self.INVALID_CLASS_RANGE_ERROR_STATE
 
+class Except(RegexState):
+  '''
+  State after keyword "except" indicating a complement class
+  '''
+  def __init__(self):
+    super(Except, self).__init__()
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_CLASS_ERROR_STATE
+
+  def do_action(self, parser):
+    parser.current_fragment = parser.OPEN_PARENTHESIS + self.OPEN_CLASS_SYMBOL + self.COMPLEMENT_CLASS_SYMBOL
+
+  def get_token_not_found_transition(self, token):
+    if token == '':
+      return self.INCOMPLETE_CLASS_ERROR_STATE
+    return self.COMPLEMENT_CLASS_STATE
+
 class From(RegexState):
   '''
   State after keyword "from" has been invoked indicating a class containing a range between characters
@@ -474,35 +531,33 @@ class OpenClass(RegexState):
       return self.INCOMPLETE_CLASS_ERROR_STATE
     return self.CLASS_STATE
 
-class AnyChar(PotentiallyFinalRegexState):
+class AnyChar(ModifiablePotentiallyFinalRegexState):
 
   def __init__(self):
     super(AnyChar, self).__init__()
-    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
-    self.transitions[self.CLASS_TOKEN] = self.OPEN_CLASS
+    self.transitions[self.OF_TOKEN] = self.OPEN_CLASS
     self.transitions[self.FROM_TOKEN] = self.FROM
+    self.transitions[self.EXCEPT_TOKEN] = self.EXCEPT
 
   def do_action(self, parser):
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.ANY_CHAR_SYMBOL
 
-class PlainText(PotentiallyFinalRegexState):
+class PlainText(ModifiablePotentiallyFinalRegexState):
   '''
   State in which the current fragment consists of plain text (no keyword)
   '''
   def __init__(self):
     super(PlainText, self).__init__()
-    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
 
   def do_action(self, parser):
     parser.process_current_token_as_plain_text()
 
-class EndNestedExpression(PotentiallyFinalRegexState):
+class EndNestedExpression(ModifiablePotentiallyFinalRegexState):
   '''
   State after a nested expression
   '''
   def __init__(self):
     super(EndNestedExpression, self).__init__()
-    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES
 
   def do_action(self, parser):
     parser.child.end()
@@ -532,16 +587,16 @@ class NestedExpression(RegexState):
       return self.NESTED_EXPRESSION_UP_LEVEL
     return self.NESTED_EXPRESSION
 
-class NewNestedExpression(PotentiallyFinalRegexState):
+class NewNestedExpression(ModifiablePotentiallyFinalRegexState):
   '''
   State of starting an expression nested within current expression (after open square bracket)
+  Note that this state can also transition into a typical expression, if the open square bracket is to be treated as regular plain text input (thus, modifiable)
   '''
   def __init__(self):
     super(NewNestedExpression, self).__init__()
     self.transitions[self.EXPRESSION_TOKEN] = self.NESTED_EXPRESSION
     self.transitions[self.NESTED_CLOSE_TOKEN] = self.END_NESTED_EXPRESSION
     self.transitions[self.END_OF_INPUT_TOKEN] = self.UNCLOSED_BRACKET_ERROR_STATE
-    self.transitions[self.CHECK_NUMBER_OF_TIMES_TOKEN] = self.CHECK_NUMBER_OF_TIMES 
 
   def do_action(self, parser):
     parser.process_current_token_as_plain_text()
@@ -637,7 +692,10 @@ class RegexStateFactory(object):
                        RegexState.INVALID_CLASS_RANGE_ERROR_STATE: InvalidClassRangeErrorState(),
                        RegexState.TO: To(),
                        RegexState.OPEN_CLASS_RANGE: OpenClassRange(),
-                       RegexState.OR_FROM: OrFrom()}
+                       RegexState.OR_FROM: OrFrom(),
+                       RegexState.EXCEPT: Except(),
+                       RegexState.OR_EXCEPT: OrExcept(),
+                       RegexState.COMPLEMENT_CLASS_STATE: ComplementClassState()}
 
   @staticmethod
   def get_next_state(state, token):

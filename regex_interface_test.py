@@ -328,7 +328,12 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, r'([\.\*\$\@\^\\])', 'Should be able to parse a simple class expression.')
 
-    #Test or_of with classes
+    #Test simple or_of
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of 'def';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([abcdef])', 'Should be able to parse simple or_of expression')
+
+    #Test or_of in sequence
     self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_of 'def' or_of 'ghi';''')
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '([abcdefghi])', 'Should be able to parse complex class expression consist of several or_of statements in a row.')
@@ -406,6 +411,11 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '([abcd-f])', 'Should be able to transition from "of" to "or_from"')
 
+    #Test of to or_except
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_except 'def' ""''')
+    self.assertRaises(regex_errors.InvalidModifierError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidModifierState), 'Wrong type of or after "of" leads to invalid modifier state')
+
     #Test from/to to or_of
     self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'd' to 'f' or_of 'xyz';''')
     self.rpm.parse()
@@ -415,6 +425,61 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm = regex_interface.RegexParserMachine('''expr: any_char of 'abc' or_from 'c' to 'e' or_from '$' to '@' or_of 'def' or_from 'k' to 'z';''')
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '([abcc-e\$-\@defk-z])', 'Should be able to go from of to or_from to or_of to or_from')
+
+    #Test from with  or_except
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char from 'a' to 'z' or_except 'abc' ""''')
+    self.assertRaises(regex_errors.InvalidModifierError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidModifierState), 'Wrong type of or after "from...to" leads to invalid modifier state')
+
+    #Test simple except
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char except 'abc';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([^abc])', 'Should be able to parse a simple complement class expression.')
+
+    #Test incomplete complement class statement
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char except''')
+    self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'End of input directly after keyword except should result in error.')
+
+    #Test empty complement class statement
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char except ""''')
+    self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'Empty input to complement character class should result in an error..')
+
+    #Test simple class statement with special chars
+    self.rpm = regex_interface.RegexParserMachine(r'''expr: any_char except '^';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, r'([^\^])', 'Should be able to parse a simple class expression.')
+
+    #Test simple or_except
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char except 'abc' or_except 'def';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([^abcdef])', 'Should be able to parse complex class expression consist of several or_of statements in a row.')
+
+    #Test or_except in sequence
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char except 'abc' or_except 'def' or_except 'ghi';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([^abcdefghi])', 'Should be able to parse complex class expression consist of several or_except statements in a row.')
+
+    #Test incomplete or_except statement
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char except 'abc' or_except''')
+    self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'End of input directly after keyword or_except should result in error.')
+
+    #Test or_except statement with empty class
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char except 'abc' or_except ""''')
+    self.assertRaises(regex_errors.IncompleteClassError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.IncompleteClassErrorState), 'Empty input to character class should result in error.')
+
+    #Test except statement with with or_of
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char except 'abc' or_of 'def' ""''')
+    self.assertRaises(regex_errors.InvalidModifierError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidModifierState), 'Wrong type of or after except leads to invalid modifier state')
+
+    #Test except statement with with or_from
+    self.rpm = regex_interface.RegexParserMachine('''expr: any_char except 'abc' or_from 'def' ""''')
+    self.assertRaises(regex_errors.InvalidModifierError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regex_states.InvalidModifierState), 'Wrong type of or after except leads to invalid modifier state')
 
     #TEST ACCURACY OF REGEXES
     #test special characters

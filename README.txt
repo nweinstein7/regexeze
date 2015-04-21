@@ -184,15 +184,15 @@ expr: any_char from 'Z' to 'A'; ERROR (range must be in character order)
 TODO:
 1. Nesting [DONE]
 2. Or [DONE]
-3. Classes
+3. Classes [DONE]
   - typical classes (of) [DONE]
-  - complement classes (except)
+  - complement classes (except) [DONE]
   - range (from ... to) [DONE]
   - escaping inside classes [DONE]
-  - or with classes (multiple items in class)
+  - or with classes (multiple items in class) [DONE]
     - or_of [DONE]
     - or_from [DONE]
-    - or_except
+    - or_except [DONE]
 4. Special characters (alphanumeric, decimal, whitespace)
 5. Start, end
   - not modifiable!
