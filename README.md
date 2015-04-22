@@ -176,7 +176,7 @@ For example:
 expr: "a" or "b";
 ```
 
-Once an expression has an "or" in it, it cannot be followed by another expression at the same level of nesting. Similarly, expressions with *or* in them cannot follow other expressions at the same level of nesting. This is to avoid confusin about the "reach" of the or.  So, the following are incorrect:
+Once an expression has an "or" in it, it cannot be followed by another expression at the same level of nesting. Similarly, expressions with *or* in them cannot follow other expressions at the same level of nesting. This is to avoid confusion about the "reach" of the or.  So, the following are incorrect:
 
 ```
 expr: "a" or "b"; expr: "c"; #ERROR
@@ -192,5 +192,5 @@ expr: [ expr: "a" or "b";]; expr: "c";
 For "a" followed by "b" or "c", do this:
 
 ```
-expr: "a"; expr: [ expr: "b" or "b";];
+expr: "a"; expr: [ expr: "b" or "c";];
 ```
