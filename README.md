@@ -121,23 +121,44 @@ expr: "abc" for 2;
 
 *for* supports this list of modifiers:
 * *zero_or_more*: matches zero or more repetitions. For example:
-        expr: "a" for zero_or_more;
+
+```
+expr: "a" for zero_or_more;
+```
+
 * *zero_or_one*: matches zero or one time - useful for "optional" characters, such as a hyphen between sections of a phone number. For example:
-        expr: "a" for zero_or_one;
+
+```
+expr: "a" for zero_or_one;
+```
+
 * *m up_to n*: matches between m and n times. For example:
-        expr: "a" for 2 up_to 10;
+
+```
+expr: "a" for 2 up_to 10;
+```
+
 * *m up_to infinity*: matches starting with m times, with no upper bound. For example:
-        expr: "b" for 3 up_to infinity;
+
+```
+expr: "b" for 3 up_to infinity;
+```
 
 ###Nesting:
 Expressions can also be nested inside of other expressions. Nesting is indicated by square brackets ([]).
 
 For example:
 * match the string "ab" for exactly one repetition
-        expr: [ expr: "a"; expr: "b";] for 1;
+
+```
+expr: [ expr: "a"; expr: "b";] for 1;
+```
 
 * match the string "aabbbaabbbaabbbaabbb"
-        expr: [ expr: "a" for 2; expr: "b" for 3;] for 4;
+
+```
+expr: [ expr: "a" for 2; expr: "b" for 3;] for 4;
+```
 
 >NOTE 5: Always remember to close brackets, and semi-colon rules still apply
 
@@ -150,17 +171,26 @@ Nesting is particularly useful for *or* statements, which present two (or more) 
 
 For example:
 * match the string "a" or the string "b"
-        expr: "a" or "b";
+
+```
+expr: "a" or "b";
+```
 
 Once an expression has an "or" in it, it cannot be followed by another expression at the same level of nesting. Similarly, expressions with *or* in them cannot follow other expressions at the same level of nesting. This is to avoid confusin about the "reach" of the or.  So, the following are incorrect:
 
-        expr: "a" or "b"; expr: "c"; #ERROR
-        expr: "a"; expr: "b" or "c"; #ERROR
+```
+expr: "a" or "b"; expr: "c"; #ERROR
+expr: "a"; expr: "b" or "c"; #ERROR
+```
 
 If you want either "a" or "b" followed by "c", do this:
 
-        expr: [ expr: "a" or "b";]; expr: "c";
+```
+expr: [ expr: "a" or "b";]; expr: "c";
+```
 
 For "a" followed by "b" or "c", do this:
 
-        expr: "a"; expr: [ expr: "b" or "b";];
+```
+expr: "a"; expr: [ expr: "b" or "b";];
+```
