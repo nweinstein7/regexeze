@@ -117,7 +117,7 @@ class InvalidRepetitionRangeError(Error):
   Exception raised when keyword up_to is followed by an incorrect token
   '''
   def __init__(self, parser):
-    self.msg = 'Invalid number of repetitions specified after key word "up_to"\nMust be followed by an integer or the infinity keyword.'
+    self.msg = 'Invalid number of repetitions specified after key word "up_to"\nMust be followed by an integer greater than or equal to the first number, or else the infinity keyword.'
     self.msg += '\n' + self.show_error_location(parser)
 
 if __name__ == '__main':

@@ -28,6 +28,8 @@ class RegexParserMachine(object):
   @type current_start_range: char
   @param n_expressions: number of complete expressions so far (necessary for determining whether or can occur)
   @type n_expressions: int
+  @param m_repetitions: the lower bound of the repetition interval indicated
+  @type m_repetitions: int
   '''
   END_OF_INPUT = 'end_of_input'
   OPEN_PARENTHESIS = '('
@@ -49,6 +51,7 @@ class RegexParserMachine(object):
     self.after_or = False
     self.n_expressions = 0
     self.current_start_range = ""
+    self.m_repetitions = 0
 
   def parse(self, source=""):
    '''

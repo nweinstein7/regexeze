@@ -349,10 +349,13 @@ class UpTo(RegexState):
     self.transitions[self.INFINITY_TOKEN] = self.M_UP_TO_INFINITY_REPETITIONS
 
   def get_token_not_found_transition(self, token):
-    if token.isdigit():
+    if token.isdigit() and self.m_repetitions <= int(token):
       return self.M_UP_TO_N_REPETITIONS
     else:
       return self.INVALID_REPETITION_RANGE_ERROR_STATE
+
+  def do_action(self, parser):
+    self.m_repetitions = parser.m_repetitions
 
 class MUpToNRepetitions(GreedyNumberOfRepetitionsState):
   '''
@@ -392,6 +395,7 @@ class MRepetitions(GreedyNumberOfRepetitionsState):
     super(MRepetitions, self).do_action(parser)
     parser.current_modifier_fragment = parser.current_token
     parser.current_modifier = self.symbol.format(parser.current_modifier_fragment)
+    parser.m_repetitions = int(parser.current_token)
 
 class CheckNumberOfTimes(RegexState):
   '''

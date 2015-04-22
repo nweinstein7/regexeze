@@ -225,6 +225,16 @@ class test_regex_parser_machine(unittest.TestCase):
     self.assertRaises(regexeze_errors.InvalidRepetitionRangeError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regexeze_states.InvalidRepetitionRangeErrorState), 'Keyword up_to must be followed by an integer')
 
+    #Test m repetitions modifier followed by up_to then non lower number
+    self.rpm = regexeze.RegexParserMachine('expr: "a" for 2 up_to 1;')
+    self.assertRaises(regexeze_errors.InvalidRepetitionRangeError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.InvalidRepetitionRangeErrorState), 'Keyword up_to must be followed by an integer greater than or equal to previous number')
+
+    #Test m repetitions modifier followed by up_to then equal number
+    self.rpm = regexeze.RegexParserMachine('expr: "a" for 1 up_to 1;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(a){1,1}', 'Should be able to parse m up_to n repetitions where m = n')
+
     #Test m up_to n repetitions
     self.rpm = regexeze.RegexParserMachine('expr: "a" for 1 up_to 2;')
     self.rpm.parse()
