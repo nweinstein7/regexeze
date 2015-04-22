@@ -23,27 +23,28 @@ For example:
 
 * match the string "a"
 
-'''
+```
 expr: "a";
-'''
+```
+
 
 * match the string "."
 
-'''
+```
 expr: ".";
-'''
+```
 
 * match the string "ab"
 
-'''
+```
 expr: "ab";
-'''
+```
 
 * another way to match the string "ab" (by stringing together two expressions)
 
-'''
+```
 expr: "a"; expr: "b";
-'''
+```
 
 ###"any_char:"
 The *any_char* keyword matches any character when unmodified, or any character in a given set when modified:
@@ -52,27 +53,27 @@ For example:
 
 * match any single character, for example "a", "g", "1", "&", etc.
 
-'''
+```
 expr: any_char;
-'''
+```
 
 * match any character in the set of "a", "b", or "c", so "a", "b", and "c" would all match, and nothing else
 
-''' 
+``` 
 expr: any_char of "abc";
-'''
+```
 
 * match any_char except a, b, or c, so "d", "j", "6", "#" would all match
 
-'''
+```
 expr: any_char except "abc";
-'''
+```
 
 * match any_char in the character range of a to c
 
-'''
+```
 expr: any_char from "a" to "c";
-'''
+```
 
 As you saw in the above examples, any_char supports these modifiers:
 * *of*: indicates a set of characters
@@ -82,21 +83,21 @@ As you saw in the above examples, any_char supports these modifiers:
 These can also be strung together using special *or* keywords:
 * *or_of*: indicates a continuation of a set of characters. For example, the following code matches "a", "b", "c", "d", "e", or "f"
 
-'''
+```
 expr: any_char of "abc" or_of "def";
-'''
+```
 
 * *or_from*: indicates another range. For example:
 
-'''
+```
 expr: any_char from "a" to "c" or_from "x" to "z";
-'''
+```
 
 * *or_except*: indicates a continuation of a complement set. For example:
 
-'''
+```
 expr: any_char except "abc" or_except "def" or_except "ghi";
-'''
+```
 
 >NOTE 3: or_from and or_of can be used interchangeably after "of" and "from". or_except can only be used after except. 
 
@@ -108,15 +109,15 @@ The *for* keyword modifies how many times an expression should occur.
 For example:
 * match any string with "a" followed by "ab" one or more times, for example, "aab", "aabab", or "aababab", but not "a"
 
-'''
+```
 expr: "a"; expr: "ab" for one_or_more;
-'''
+```
 
 * match any string with "abc" occurring exactly two times, so only matches "abcabc"
 
-'''
+```
 expr: "abc" for 2;
-'''
+```
 
 *for* supports this list of modifiers:
 * *zero_or_more*: matches zero or more repetitions. For example:
