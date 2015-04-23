@@ -2,6 +2,7 @@ import shlex
 import regexeze_states
 import sys
 import re
+import argparse
 
 class RegexParserMachine(object):
   '''
@@ -112,7 +113,29 @@ class RegexParserMachine(object):
   def end_class(self):
     self.current_fragment += re.escape(self.current_token) + self.CLOSE_CLASS_SYMBOL
 
+def main(input_string=None, filename=None):
+  '''
+  Main method for the program
+  @param input_string: a string to be parsed
+  @type input_string: str
+  @param filename: name of file to be parsed
+  @type filename: str
+  '''
+  my_rpm = RegexParserMachine('')
+  if input_string:
+    my_rpm = RegexParserMachine(input_string);
+    my_rpm.parse()
+  elif filename:
+    my_rpm.parse(filename)
+  else:
+    my_rpm.parse(sys.stdin)
+  print my_rpm.ret_val
+
 if __name__ == '__main__':
-  my_rgpm = RegexParserMachine('')
-  my_rgpm.parse(sys.stdin)
-  print my_rgpm.ret_val
+  argparser = argparse.ArgumentParser(description='Parses a regular expression in regexeze. If no input string or file is supplied, parses from command line.')
+  group = argparser.add_mutually_exclusive_group()
+  group.add_argument('-i', '--input-string', dest='input_string', type=str, help='A string of input')
+  group.add_argument('-f', '--filename', dest='filename', type=str, help='A file (or path to file) containing a regex')
+
+  args = argparser.parse_args()
+  main(args.input_string, args.filename)

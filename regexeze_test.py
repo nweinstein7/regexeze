@@ -37,6 +37,10 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm.parse(self.EMPTY_FILE_NAME)
     self.assertEquals(self.rpm.ret_val, '', 'Empty file empty string')
 
+    #Test nonexistent file
+    self.rpm = regexeze.RegexParserMachine('')
+    self.assertRaises(IOError, self.rpm.parse, "not_a_real_file.file")
+
     #Test errors in file reading
     self.rpm = regexeze.RegexParserMachine('')
     self.assertRaises(regexeze_errors.IncompleteExpressionError, self.rpm.parse, "test_files/test_error_file.txt")
