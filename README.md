@@ -230,8 +230,8 @@ For example:
 expr: start_of_string; expr: "Once upon a time";
 ```
 
-*The following expression will match "happily ever after." but not "happily ever after til the end of time."
+*The following expression will match "happily ever after" but not "happily ever after til the end of time"
 
 ```
-expr: "happily ever after."; expr: end_of_string;
+expr: "happily ever after"; expr: end_of_string;
 ```
