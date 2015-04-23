@@ -144,6 +144,30 @@ expr: "a" for 2 up_to 10;
 expr: "b" for 3 up_to infinity;
 ```
 
+###"greedy" and "not_greedy":
+After indicating the number of repetitions using *for*, you can indicate whether that modifier is *greedy* or *not_greedy*. This determines whether it will try to match the "most possible" (greedy) or "fewest possible" (not greedy). You can specify *greedy* or *not_greedy* after any for statement, though greedy is the default for all.
+
+For example:
+* Let's say you want to match html tags in a string, for example, "<html>This is html</html>".  You might do this:
+
+```
+expr: "<"; expr: any_char for one_or_more; expr: ">";
+```
+
+However, since the above expression is, by default greedy, it won't match the individual tags "<html>" and "</html>". Rather, it will match the whole string, as in its greediness, it ignores the first ">" looking for the second.  By making it *not_greedy*, we match only the first tag.
+
+```
+expr: "<"; expr: any_char for one_or_more not_greedy; expr: ">";
+```
+
+This will match "<html>" alone.
+
+* This expression will match "aa" not "aaa":
+
+```
+expr: "a" for 2 up_to 3 not_greedy;
+```
+
 ###Nesting:
 Expressions can also be nested inside of other expressions. Nesting is indicated by square brackets ([]).
 
@@ -176,7 +200,7 @@ For example:
 expr: "a" or "b";
 ```
 
-Once an expression has an "or" in it, it cannot be followed by another expression at the same level of nesting. Similarly, expressions with *or* in them cannot follow other expressions at the same level of nesting. This is to avoid confusion about the "reach" of the or.  So, the following are incorrect:
+Once an expression has an *or* in it, it cannot be followed by another expression at the same level of nesting. Similarly, expressions with *or* in them cannot follow other expressions at the same level of nesting. This is to avoid confusin about the "reach" of the or.  So, the following are incorrect:
 
 ```
 expr: "a" or "b"; expr: "c"; #ERROR
@@ -193,4 +217,21 @@ For "a" followed by "b" or "c", do this:
 
 ```
 expr: "a"; expr: [ expr: "b" or "c";];
+```
+
+###"start_of_string" and "end_of_string"
+The keywords *start_of_string* and *end_of_string* indicate that the expression will only match directly at the start or end.
+
+For example:
+
+*The following expression will match "Once upon a time" but not "Many stories begin with "Once upon a time"":
+
+```
+expr: start_of_string; expr: "Once upon a time";
+```
+
+*The following expression will match "happily ever after" but not "happily ever after til the end of time"
+
+```
+expr: "happily ever after"; expr: end_of_string;
 ```
