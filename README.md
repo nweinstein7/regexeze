@@ -148,13 +148,13 @@ expr: "b" for 3 up_to infinity;
 After indicating the number of repetitions using *for*, you can indicate whether that modifier is *greedy* or *not_greedy*. This determines whether it will try to match the "most possible" (greedy) or "fewest possible" (not greedy). You can specify *greedy* or *not_greedy* after any for statement, though greedy is the default for all.
 
 For example:
-* Let's say you want to match tags in a string, for example, "<sometag>This is html</sometag>".  You might do this:
+* Let's say you want to match tags in a string, for example, "\<sometag\>This is html\</sometag\>".  You might do this:
 
 ```
 expr: "<"; expr: any_char for one_or_more; expr: ">";
 ```
 
-However, since the above expression is, by default greedy, it won't match the individual tags "<sometag>" and "</sometag>". Rather, it will match the whole string.  In its greediness, it ignores the first ">" looking for the second.  By making it *not_greedy*, we match only the first tag.
+However, since the above expression is, by default greedy, it won't match the individual tags "\<sometag\>" and "\</sometag\>". Rather, it will match the whole string.  In its greediness, it ignores the first ">" looking for the second.  By making it *not_greedy*, we match only the first tag.
 
 ```
 expr: "<"; expr: any_char for one_or_more not_greedy; expr: ">";
