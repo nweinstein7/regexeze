@@ -63,7 +63,8 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm = regexeze.RegexParserMachine('')
     with open(self.TEST_ERROR_FILE_NAME, 'r') as sys.stdin:
       self.assertRaises(regexeze_errors.IncompleteExpressionError, self.rpm.parse, sys.stdin)
-      self.assertTrue(isinstance(self.rpm.state, regexeze_states.IncompleteExpressionErrorState),                    'When expression reaches end of input prematurely, should end up in IncompleteExpressionErrorState')
+      self.assertTrue(isinstance(self.rpm.state, regexeze_states.IncompleteExpressionErrorState),
+                                 'When expression reaches end of input prematurely, should end up in IncompleteExpressionErrorState')
 
     #TEST NEW EXPRESSION ERRORS
     #test expression that is completely empty
