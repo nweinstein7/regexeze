@@ -160,7 +160,7 @@ However, since the above expression is, by default greedy, it won't match the in
 expr: "<"; expr: any_char for one_or_more not_greedy; expr: ">";
 ```
 
-This will match "<sometag>" alone.
+This will match "\<sometag\>" alone.
 
 * This expression will match "aa" not "aaa":
 
