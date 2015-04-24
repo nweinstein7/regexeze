@@ -110,9 +110,6 @@ class RegexParserMachine(object):
     '''
     self.current_fragment = self.OPEN_PARENTHESIS + re.escape(self.current_token)
 
-  def end_class(self):
-    self.current_fragment += re.escape(self.current_token) + self.CLOSE_CLASS_SYMBOL
-
 def main(input_string=None, filename=None):
   '''
   Main method for the program

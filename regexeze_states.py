@@ -5,6 +5,10 @@ import re
 class RegexState(object):
   '''
   A state of the RegexParserMachine
+  @param auxiliary_character_set: set of special characters that appear in character classes AND plaintext
+  @type auxiliary_character_set: dictionary string -> string
+  @param start_or_end_of_string_character_set: set of characters denoting start and end of string
+  @type start_or_end_of_string_character_set: dictionary string -> string
   '''
   END_OF_EXPRESSIONS = 'EndOfExpressions'
   ANY_CHAR = 'AnyChar'
@@ -54,8 +58,8 @@ class RegexState(object):
   EXCEPT = 'Except'
   COMPLEMENT_CLASS_STATE = 'ComplementClassState'
   OR_EXCEPT = 'OrExcept'
-  START_OF_STRING = 'StartOfString'
-  END_OF_STRING = 'EndOfString'
+  UNMODIFIABLE_SPECIAL_CHAR_STATE = 'UnmodifiableSpecialCharState'
+  SPECIAL_CHAR_STATE = 'SpecialCharState'
 
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
@@ -70,6 +74,18 @@ class RegexState(object):
   COMPLEMENT_CLASS_SYMBOL = '^'
   START_OF_STRING_SYMBOL = '^'
   END_OF_STRING_SYMBOL = '$'
+  NEW_LINE_SYMBOL = '\n'
+  TAB_SYMBOL = '\t'
+  CARRIAGE_RETURN_SYMBOL = '\r'
+  PAGE_BREAK_SYMBOL = '\f'
+  VERTICAL_SPACE_SYMBOL = '\v'
+  DIGIT_SYMBOL = '\d'
+  NON_DIGIT_SYMBOL = '\D'
+  WHITESPACE_SYMBOL = '\s'
+  NON_WHITESPACE_SYMBOL = '\S'
+  ALPHANUMERIC_SYMBOL = '\w'
+  NON_ALPHANUMERIC_SYMBOL = '\W'
+  
 
   END_OF_INPUT_TOKEN = 'end_of_input'
   GREEDY_TOKEN = 'greedy'
@@ -95,9 +111,33 @@ class RegexState(object):
   OR_EXCEPT_TOKEN = 'or_except'
   START_OF_STRING_TOKEN = 'start_of_string'
   END_OF_STRING_TOKEN = 'end_of_string'
+  NEW_LINE_TOKEN = 'new_line'
+  TAB_TOKEN = 'tab'
+  CARRIAGE_RETURN_TOKEN = 'carriage_return'
+  PAGE_BREAK_TOKEN = 'page_break'
+  VERTICAL_SPACE_TOKEN = 'vertical_space'
+  DIGIT_TOKEN = 'digit'
+  NON_DIGIT_TOKEN = 'non_digit'
+  WHITESPACE_TOKEN = 'whitespace'
+  NON_WHITESPACE_TOKEN = 'non_whitespace'
+  ALPHANUMERIC_TOKEN = 'alphanumeric'
+  NON_ALPHANUMERIC_TOKEN = 'non_alphanumeric'
 
   def __init__(self):
     self.transitions = {}
+    self.unmodifiable_auxiliary_character_set = { self.START_OF_STRING_TOKEN: self.START_OF_STRING_SYMBOL,
+                                                  self.END_OF_STRING_TOKEN: self.END_OF_STRING_SYMBOL }
+    self.auxiliary_character_set = { self.NEW_LINE_TOKEN: self.NEW_LINE_SYMBOL,
+                                     self.TAB_TOKEN: self.TAB_SYMBOL,
+                                     self.CARRIAGE_RETURN_TOKEN: self.CARRIAGE_RETURN_SYMBOL,
+                                     self.PAGE_BREAK_TOKEN: self.PAGE_BREAK_SYMBOL,
+                                     self.VERTICAL_SPACE_TOKEN: self.VERTICAL_SPACE_SYMBOL,
+                                     self.DIGIT_TOKEN: self.DIGIT_SYMBOL,
+                                     self.NON_DIGIT_TOKEN: self.NON_DIGIT_SYMBOL,
+                                     self.WHITESPACE_TOKEN: self.WHITESPACE_SYMBOL,
+                                     self.NON_WHITESPACE_TOKEN: self.NON_WHITESPACE_SYMBOL,
+                                     self.ALPHANUMERIC_TOKEN: self.ALPHANUMERIC_SYMBOL,
+                                     self.NON_ALPHANUMERIC_TOKEN: self.NON_ALPHANUMERIC_SYMBOL }
 
   def do_action(self, parser):
     '''
@@ -255,10 +295,12 @@ class StartExpression(RegexState):
     self.transitions[self.ANY_CHAR_TOKEN] = self.ANY_CHAR
     self.transitions[self.END_OF_INPUT_TOKEN] = self.INCOMPLETE_EXPRESSION_ERROR_STATE
     self.transitions[self.NESTED_OPEN_TOKEN] = self.NEW_NESTED_EXPRESSION
-    self.transitions[self.START_OF_STRING_TOKEN] = self.START_OF_STRING
-    self.transitions[self.END_OF_STRING_TOKEN] = self.END_OF_STRING
 
   def get_token_not_found_transition(self, token):
+    if token in self.unmodifiable_auxiliary_character_set:
+      return self.UNMODIFIABLE_SPECIAL_CHAR_STATE
+    elif token in self.auxiliary_character_set:
+      return self.SPECIAL_CHAR_STATE
     return self.PLAIN_TEXT
 
   def do_action(self, parser):
@@ -461,7 +503,22 @@ class OrOf(RegexState):
       return self.INCOMPLETE_CLASS_ERROR_STATE
     return self.CLASS_STATE
 
-class ClassState(ModifiablePotentiallyFinalRegexState):
+class BaseClassState(ModifiablePotentiallyFinalRegexState):
+  '''
+  Parent state in which a class or complement class value has been indicated
+  '''
+  def __init__(self):
+    super(BaseClassState, self).__init__()
+
+  def do_action(self, parser):
+    super(BaseClassState, self).do_action(parser)
+    if parser.current_token in self.auxiliary_character_set:
+      parser.current_token = self.auxiliary_character_set[parser.current_token]
+    else:  
+      parser.current_token = re.escape(parser.current_token)
+    parser.current_fragment += parser.current_token + parser.CLOSE_CLASS_SYMBOL
+
+class ClassState(BaseClassState):
   '''
   State in which a class value has been indicated (or in which a class range has been ended)
   '''
@@ -470,21 +527,13 @@ class ClassState(ModifiablePotentiallyFinalRegexState):
     self.transitions[self.OR_OF_TOKEN] = self.OR_OF
     self.transitions[self.OR_FROM_TOKEN] = self.OR_FROM
 
-  def do_action(self, parser):
-    super(ClassState, self).do_action(parser)
-    parser.end_class()
-
-class ComplementClassState(ModifiablePotentiallyFinalRegexState):
+class ComplementClassState(BaseClassState):
   '''
   State in which a complement class value has been indicated
   '''
   def __init__(self):
     super(ComplementClassState, self).__init__()
     self.transitions[self.OR_EXCEPT_TOKEN] = self.OR_EXCEPT
-
-  def do_action(self, parser):
-    super(ComplementClassState, self).do_action(parser)
-    parser.end_class()
 
 class To(RegexState):
   '''
@@ -581,27 +630,35 @@ class AnyChar(ModifiablePotentiallyFinalRegexState):
     super(AnyChar, self).do_action(parser)
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.ANY_CHAR_SYMBOL
 
-class StartOfString(PotentiallyFinalRegexState):
+class SpecialCharState(ModifiablePotentiallyFinalRegexState):
   '''
-  State in which the current fragment consists of the start of string symbol (^)
-  '''
-  def __init__(self):
-    super(StartOfString, self).__init__()
-
-  def do_action(self, parser):
-    super(StartOfString, self).do_action(parser)
-    parser.current_fragment = parser.OPEN_PARENTHESIS + self.START_OF_STRING_SYMBOL
-
-class EndOfString(PotentiallyFinalRegexState):
-  '''
-  State in which the current fragment consists of the end of string symbol ($)
+  Parent class for special characters (in place of plaintext, not in character classes)
+  @param symbol: the symbol for the special character
+  @type symbol: str
   '''
   def __init__(self):
-    super(EndOfString, self).__init__()
+    super(SpecialCharState, self).__init__()
+    self.symbol = ""
 
   def do_action(self, parser):
-    super(EndOfString, self).do_action(parser)
-    parser.current_fragment = parser.OPEN_PARENTHESIS + self.END_OF_STRING_SYMBOL
+    super(SpecialCharState, self).do_action(parser)
+    self.symbol = self.auxiliary_character_set[parser.current_token]
+    parser.current_fragment = parser.OPEN_PARENTHESIS + self.symbol
+
+class UnmodifiableSpecialCharState(PotentiallyFinalRegexState):
+  '''
+  State in which the current fragment consists of the a special character that is not modifiable
+  @param symbol: the symbol for the special character
+  @type symbol: str
+  '''
+  def __init__(self):
+    super(UnmodifiableSpecialCharState, self).__init__()
+    self.symbol = ""
+
+  def do_action(self, parser):
+    super(UnmodifiableSpecialCharState, self).do_action(parser)
+    self.symbol = self.unmodifiable_auxiliary_character_set[parser.current_token]
+    parser.current_fragment = parser.OPEN_PARENTHESIS + self.symbol
 
 class PlainText(ModifiablePotentiallyFinalRegexState):
   '''
@@ -748,8 +805,8 @@ class RegexStateFactory(object):
                        RegexState.EXCEPT: Except(),
                        RegexState.OR_EXCEPT: OrExcept(),
                        RegexState.COMPLEMENT_CLASS_STATE: ComplementClassState(),
-                       RegexState.START_OF_STRING: StartOfString(),
-                       RegexState.END_OF_STRING: EndOfString()}
+                       RegexState.UNMODIFIABLE_SPECIAL_CHAR_STATE: UnmodifiableSpecialCharState(),
+                       RegexState.SPECIAL_CHAR_STATE: SpecialCharState()}
 
   @staticmethod
   def get_next_state(state, token):

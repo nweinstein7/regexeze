@@ -235,3 +235,53 @@ expr: start_of_string; expr: "Once upon a time";
 ```
 expr: "happily ever after"; expr: end_of_string;
 ```
+
+>NOTE 8: *start_of_string* and *end_of_string* cannot be modified for number of repetitions, so the following will not work:
+
+```
+expr: start_of_string for zero_or_one; #ERROR
+```
+
+###Other special keywords
+There are several other keywords/especial characters that can be used in both character sets and standard expressions.
+* *new_line*: matches a newline character. For example, the following expression matches "a\nb", where \n is a newline:
+
+```
+expr: "a"; expr: new_line; expr: "b";
+```
+
+* *tab*: matches a tab character (\t). The following expression matches an optional tab:
+
+```
+expr: tab for zero_or_one;
+```
+
+* *carriage_return*: matches a carriage return character (\r). The following expression matches a carriage return or a newline:
+
+```
+expr: any_char of carriage_return or_of new_line;
+```
+
+* *page_break*: matches a pagebreak character (\f). For example, the following expression matches "\f", where \f is a pagebreak:
+
+```
+expr: page_break;
+```
+
+* *vertical_space*: matches a vertical space character (\v)
+
+* *whitespace*: matches any whitespace character, such as \n, \r, \f, \t, or \v
+
+* *non_whitespace*: matches anything but a whitespace character. Is equivalent to:
+
+```
+expr: any_char except whitespace;
+```
+
+* *digit*: matches any number character (0-9)
+
+* *non_digit*: matches any non-number character
+
+* *alphanumeric*: matches any alphanumeric (number or letter) character
+
+* *non_alphanumeric*: matches any non-alphanumeric character

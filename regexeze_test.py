@@ -133,6 +133,56 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '(.)', 'The any_char keyword (unmodified) should result in a period in a group')
 
+    #Test new_line syntax
+    self.rpm = regexeze.RegexParserMachine('expr: new_line;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(\n)', 'The new_line keyword should result in a newline expression')
+
+    #Test tab syntax
+    self.rpm = regexeze.RegexParserMachine('expr: tab;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(\t)', 'tab keyword')
+
+    #Test carriage_return syntax
+    self.rpm = regexeze.RegexParserMachine('expr: carriage_return;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(\r)', 'carriage_return keyword')
+
+    #Test vertical_space syntax
+    self.rpm = regexeze.RegexParserMachine('expr: vertical_space;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(\v)', 'vertical_space keyword')
+
+    #Test digit syntax
+    self.rpm = regexeze.RegexParserMachine('expr: digit;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(\d)', 'digit keyword')
+
+    #Test non_digit syntax
+    self.rpm = regexeze.RegexParserMachine('expr: non_digit;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(\D)', 'non_digit keyword')
+
+    #Test whitespace syntax
+    self.rpm = regexeze.RegexParserMachine('expr: whitespace;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(\s)', 'whitespace keyword')
+
+    #Test non_whitespace syntax
+    self.rpm = regexeze.RegexParserMachine('expr: non_whitespace;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(\S)', 'non_whitespace keyword')
+
+    #Test alphanumeric syntax
+    self.rpm = regexeze.RegexParserMachine('expr: alphanumeric;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(\w)', 'alphanumeric keyword')
+
+    #Test non_alphanumeric syntax
+    self.rpm = regexeze.RegexParserMachine('expr: non_alphanumeric;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(\W)', 'non_alphanumeric keyword')
+
     #TEST MODIFIERS
     #Test invalid modifier
     self.rpm = regexeze.RegexParserMachine('expr: any_char asdfha')
@@ -362,7 +412,12 @@ class test_regex_parser_machine(unittest.TestCase):
     #Test simple class statement with special chars
     self.rpm = regexeze.RegexParserMachine(r'''expr: any_char of '.*$@^\';''')
     self.rpm.parse()
-    self.assertEquals(self.rpm.ret_val, r'([\.\*\$\@\^\\])', 'Should be able to parse a simple class expression.')
+    self.assertEquals(self.rpm.ret_val, r'([\.\*\$\@\^\\])', 'Should be able to parse a simple class expression with non alphanumeric chars')
+
+    #Test simple class statement with keywords
+    self.rpm = regexeze.RegexParserMachine(r'''expr: any_char of new_line;''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '([\n])', 'Should be able to parse a simple class expression.')
 
     #Test simple or_of
     self.rpm = regexeze.RegexParserMachine('''expr: any_char of 'abc' or_of 'def';''')
@@ -552,6 +607,101 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm.parse()
     matcher = re.compile(self.rpm.ret_val)
     self.assertEquals(matcher.match('$\.$\.').group(0), '$\.$\.', "Should be able to use ret_val as a regular expression to match a string containing special characters")
+
+    #test new_line
+    self.rpm = regexeze.RegexParserMachine('''expr: "a"; expr: new_line; expr: "b";''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('a\nb').group(0), 'a\nb', "Should be able to use ret_val as a regular expression to match a string with newline")
+
+    #test new_line (negative)
+    self.assertIsNone(matcher.match('a1b'), "Regex with newline should not match string without newline")
+
+    #test digit
+    self.rpm = regexeze.RegexParserMachine('''expr: "a"; expr: digit; expr: "b";''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('a1b').group(0), 'a1b', "Should be able to use ret_val as a regular expression to match a string with digit")
+
+    #test digit (negative)
+    self.assertIsNone(matcher.match('aab'), "Regex with digit should not match string with non-digit")
+
+    #test non_digit
+    self.rpm = regexeze.RegexParserMachine('''expr: "a"; expr: non_digit; expr: "b";''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('a b').group(0), 'a b', "Should be able to use ret_val as a regular expression to match a string with non_digit")
+
+    #test non_digit (negative)
+    self.assertIsNone(matcher.match('a1b'), "Regex with non_digit should not match string with digit")
+
+    #test whitespace
+    self.rpm = regexeze.RegexParserMachine('''expr: "a"; expr: whitespace; expr: "b";''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('a b').group(0), 'a b', "Should be able to use ret_val as a regular expression to match a string with whitespace")
+
+    #test whitespace (negative)
+    self.assertIsNone(matcher.match('a1b'), "Should be able to use ret_val as a regular expression to match a string with whitespace")
+
+    #test non_whitespace
+    self.rpm = regexeze.RegexParserMachine('''expr: "a"; expr: non_whitespace; expr: "b";''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('a1b').group(0), 'a1b', "Should be able to use ret_val as a regular expression to match a string with non_whitespace")
+
+    #test non_whitespace (negative)
+    self.assertIsNone(matcher.match('a b'), "Should be able to use ret_val as a regular expression to match a string with non_whitespace")
+
+    #test carriage_return
+    self.rpm = regexeze.RegexParserMachine('''expr: "a"; expr: carriage_return; expr: "b";''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('a\rb').group(0), 'a\rb', "Should be able to use ret_val as a regular expression to match a string with carriage_return")
+
+    #test carriage_return (negative)
+    self.assertIsNone(matcher.match('a b'), "Expression with carriage_return should not match a string without a carriage return")
+
+    #test rest of keywords
+    self.rpm = regexeze.RegexParserMachine('''expr: page_break; expr: vertical_space; expr: alphanumeric; expr: non_alphanumeric;''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('\f\va.').group(0), '\f\va.', "Should be able to use ret_val as a regular expression to match a string with assorted keyword characters")
+
+    #test class matching with keywords
+    self.rpm = regexeze.RegexParserMachine(r'''expr: any_char of new_line or_of tab or_of digit;''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('\n').group(0), '\n', "Should be able to match a character set including keyword new_line")
+    self.assertEquals(matcher.match('\t').group(0), '\t', "Should be able to match a character set including keyword tab")
+    self.assertEquals(matcher.match('1').group(0), '1', "Should be able to match a character set including keyword digit")
+
+    #test class matching with keywords (negative)
+    self.assertIsNone(matcher.match('a'), "Should not match characters that aren't in a character class with keywords")
+
+    #test complement class matching with keywords
+    self.rpm = regexeze.RegexParserMachine(r'''expr: any_char except whitespace or_except digit;''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('.').group(0), '.', "Should be able to match a complement character set including keywords")
+    self.assertEquals(matcher.match('a').group(0), 'a', "Should be able to match a complement character set including keywords")
+
+    #test complement class matching with keywords (negative)
+    self.assertIsNone(matcher.match(' '), "Should not match characters in complement character class with keywords")
+    self.assertIsNone(matcher.match('1'), "Should not match characters in complement character class with keywords")
+
+    #test class matching with keywords and slashes
+    self.rpm = regexeze.RegexParserMachine(r'''expr: any_char of '\' or_of new_line;''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match('\n').group(0), '\n', "Should be able to match a character set including keyword new_line and slash")
+    self.assertEquals(matcher.match('\\').group(0), '\\', "Should be able to match a character set including keyword new_line and slash")
+
+    self.rpm = regexeze.RegexParserMachine(r'''expr: any_char of '\' or_of whitespace;''')
+    self.rpm.parse()
+    matcher = re.compile(self.rpm.ret_val)
+    self.assertEquals(matcher.match(' ').group(0), ' ', "Should be able to match a character set including keyword new_line and slash")
+    self.assertEquals(matcher.match('\\').group(0), '\\', "Should be able to match a character set including keyword new_line and slash")
 
 if __name__ == '__main__':
     unittest.main()
