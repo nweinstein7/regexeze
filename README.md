@@ -200,7 +200,7 @@ For example:
 expr: "a" or "b";
 ```
 
-Once an expression has an *or* in it, it cannot be followed by another expression at the same level of nesting. Similarly, expressions with *or* in them cannot follow other expressions at the same level of nesting. This is to avoid confusin about the "reach" of the or.  So, the following are incorrect:
+Once an expression has an *or* in it, it cannot be followed by another expression at the same level of nesting. Similarly, expressions with *or* in them cannot follow other expressions at the same level of nesting. This is to avoid confusion about the "reach" of the or.  So, the following are incorrect:
 
 ```
 expr: "a" or "b"; expr: "c"; #ERROR
@@ -224,13 +224,13 @@ The keywords *start_of_string* and *end_of_string* indicate that the expression 
 
 For example:
 
-*The following expression will match "Once upon a time" but not "Many stories begin with "Once upon a time"":
+* The following expression will match "Once upon a time" but not "Many stories begin with "Once upon a time"":
 
 ```
 expr: start_of_string; expr: "Once upon a time";
 ```
 
-*The following expression will match "happily ever after" but not "happily ever after til the end of time"
+* The following expression will match "happily ever after" but not "happily ever after til the end of time"
 
 ```
 expr: "happily ever after"; expr: end_of_string;
