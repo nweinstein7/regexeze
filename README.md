@@ -9,6 +9,39 @@ A high level, human-readable interface for regular expressions.
 - support for expanded layout, for even easier comprehension
 
 ##How it works:
+###Usage:
+- Parse regexes from stdin:
+```
+python regexeze.py
+```
+
+- Parse regexes from a string:
+```
+python regexeze -i "expr: 'a'"
+```
+
+- Parse regexes from file:
+```
+python regexeze -f test_file.txt
+```
+
+- Get usage help:
+```
+python regexeze.py --help
+usage: regexeze.py [-h] [-i INPUT_STRING | -f FILENAME]
+
+Parses a regular expression in regexeze. If no input string or file is
+supplied, parses from command line.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -i INPUT_STRING, --input-string INPUT_STRING
+                        A string of input
+  -f FILENAME, --filename FILENAME
+                        A file (or path to file) containing a regex
+```
+
+###Syntax:
 Regular expressions consist of series of "expressions", which start with the keyword "expr" (pronounced "exper"?) followed by a colon. They end with semicolon (;).
 
 >NOTE 1: Always remember to end with a semicolon!
@@ -46,7 +79,7 @@ expr: "ab";
 expr: "a"; expr: "b";
 ```
 
-###"any_char:"
+###"any_char":
 The *any_char* keyword matches any character when unmodified, or any character in a given set when modified:
 
 For example:
@@ -219,7 +252,7 @@ For "a" followed by "b" or "c", do this:
 expr: "a"; expr: [ expr: "b" or "c";];
 ```
 
-###"start_of_string" and "end_of_string"
+###"start_of_string" and "end_of_string":
 The keywords *start_of_string* and *end_of_string* indicate that the expression will only match directly at the start or end.
 
 For example:
@@ -242,7 +275,7 @@ expr: "happily ever after"; expr: end_of_string;
 expr: start_of_string for zero_or_one; #ERROR
 ```
 
-###Other special keywords
+###Other special keywords:
 There are several other keywords/especial characters that can be used in both character sets and standard expressions.
 * *new_line*: matches a newline character. For example, the following expression matches "a\nb", where \n is a newline:
 
@@ -285,3 +318,22 @@ expr: any_char except whitespace;
 * *alphanumeric*: matches any alphanumeric (number or letter) character
 
 * *non_alphanumeric*: matches any non-alphanumeric character
+
+###Comments:
+Regexeze supports comments with the pound sign (#). All text on the same line after a "#" will not be parsed.
+
+For example:
+```
+expr: 'a'; #this is a comment
+expr: 'b'; #this is another comment
+```
+
+>NOTE 9: Careful to put "#"'s in quotes when using them in expressions. Otherwise, the parser will think you are trying to make a comment, and throw an incomplete expression error.
+```
+expr: #; #ERROR
+```
+
+Putting the "#" symbol in quotes will get the desired effect:
+```
+expr: "#"; #CORRECT: matches a single "#" symbol
+```
