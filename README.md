@@ -332,8 +332,7 @@ expr: 'b'; #this is another comment
 ```
 expr: #; #ERROR
 ```
-
-Putting the "#" symbol in quotes will get the desired effect:
+>Putting the "#" symbol in quotes will get the desired effect:
 ```
 expr: "#"; #CORRECT: matches a single "#" symbol
 ```
