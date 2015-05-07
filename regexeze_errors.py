@@ -96,6 +96,22 @@ class ColonError(Error):
     self.msg = 'expr needs a colon'
     self.msg += '\n' + self.show_error_location(parser)
 
+class FlagsColonError(Error):
+  '''
+  Exception raised when set_flags is not followed by colon
+  '''
+  def __init__(self, parser):
+    self.msg = 'set_flags must be followed by colon'
+    self.msg += '\n' + self.show_error_location(parser)
+
+class InvalidFlagError(Error):
+  '''
+  Exception raised when an invalid flag is selected
+  '''
+  def __init__(self, parser):
+    self.msg = 'Flags must be valid and listed in a comma-separated list, followed by a semicolon (;).\nValid flags: ignore_case, multiline, locale, dot_all, unicode.\nFlags may be listed in any order.'
+    self.msg += '\n' + self.show_error_location(parser)
+
 class InvalidModifierError(Error):
   '''
   Exception raised when an expr value is followed by something other than a key word or end bracket

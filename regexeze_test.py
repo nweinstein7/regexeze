@@ -601,6 +601,66 @@ class test_regex_parser_machine(unittest.TestCase):
     self.assertTrue(isinstance(self.rpm.state, regexeze_states.InvalidModifierState),
                     'Should not be able to modify end_of_string')
 
+    #TEST FLAGS
+    #test basic positive use of flags
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case, locale, multiline, dot_all, unicode; expr: 'a';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?iLmsu)(a)', "Flag keywords should be handled properly")
+
+    #test basic negative use of flags
+    #missing colon
+    self.rpm = regexeze.RegexParserMachine('''set_flags ignore_case, locale, multiline, dot_all, unicode; expr: 'a';''')
+    self.assertRaises(regexeze_errors.FlagsColonError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.FlagsColonErrorState),
+                    'Should enforce colon after set_flags keyword')
+
+    #incorrect flag
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case, hello, multiline, dot_all, unicode; expr: 'a';''')
+    self.assertRaises(regexeze_errors.InvalidFlagError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.InvalidFlagState),
+                    'Flags should be valid')
+
+    #flags not comma-separated
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case dotall, multiline, dot_all, unicode; expr: 'a';''')
+    self.assertRaises(regexeze_errors.InvalidFlagError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.InvalidFlagState),
+                    'Flags should be comma separated')
+
+    #no semicolon after flags
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case''')
+    self.assertRaises(regexeze_errors.IncompleteExpressionError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.IncompleteExpressionErrorState),
+                    'Flags should be followed by semi-colon')
+
+    #test flag edge cases
+    #empty expression with flags
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case, locale, multiline, dot_all, unicode;''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?iLmsu)', "An expression can be empty except for flags")
+
+    #repeated flags - acceptable
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case, ignore_case, ignore_case; expr: 'a';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?iii)(a)', "Flags can be repeated indefinitely")
+
+    #repeated flag settings - acceptable
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case; expr: 'a'; set_flags: multiline;''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?i)(a)(?m)', "Flags can be set anywhere in an expression")
+
+    #flags can be set before or statements
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case; expr: 'a' or 'b';''')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?i)(a)|(b)', "Flags can coexist with or's")
+
+    #multiple ors on same nesting level still error with flags
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case; expr: 'a' or 'b'; expr: 'c';''')
+    self.assertRaises(regexeze_errors.MultipleOrError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.MultipleOrErrorState), 'Flags do not interfere with or nesting rules')
+
+    self.rpm = regexeze.RegexParserMachine('''expr: 'a' or 'b'; set_flags: ignore_case; expr: 'c';''')
+    self.assertRaises(regexeze_errors.MultipleOrError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.MultipleOrErrorState), 'Flags do not interfere with or nesting rules')
 
     #TEST ACCURACY OF REGEXES
     #test special characters

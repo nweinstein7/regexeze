@@ -275,6 +275,27 @@ expr: "happily ever after"; expr: end_of_string;
 expr: start_of_string for zero_or_one; #ERROR
 ```
 
+###"set_flags:"
+Regexeze allows the user to set all the same flags as the Python re module, with the exception of
+VERBOSE, because regexeze is inherently "verbose".
+
+To set flags, you replace "expr:" with "set_flags:"
+
+For example:
+
+```
+set_flags: ignore_case, multiline; expr: 'a'; expr: end_of_string;
+```
+
+A set_flags expression can go anywhere a standar expr expression would go. As you can see in the above example, flags are separated by commas and end with a semicolon.  You can set flags as many times as you want in an expression, but they only count once. A set_flags expression does not "count" as a standard expression, and therefore can be followed by an or.
+
+Flags:
+* *ignore_case*: case-insensitive matching, so "A" and "a" are identical
+* *locale*: if set, the keyword "alphanumeric" (see below)  will depend on whichever locale you are in - different places have different definitions of alphanumeric
+* *multiline*: start_of_string and end_of_string will match at the end of *lines*, not just at the start and end of strings
+* *any_char_all*: any_char matches everything *including* newlines (without this specified, any_char does not match newlines)
+* *unicode*: similar to locale, this will make certain special keywords depend on the unicode set
+
 ###Other special keywords:
 There are several other keywords/especial characters that can be used in both character sets and standard expressions.
 * *new_line*: matches a newline character. For example, the following expression matches "a\nb", where \n is a newline:

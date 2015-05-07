@@ -60,10 +60,16 @@ class RegexState(object):
   OR_EXCEPT = 'OrExcept'
   UNMODIFIABLE_SPECIAL_CHAR_STATE = 'UnmodifiableSpecialCharState'
   SPECIAL_CHAR_STATE = 'SpecialCharState'
+  SET_FLAGS = 'SetFlags'
+  FLAG_STATE = 'FlagState'
+  CHECK_FLAGS_COLON = 'CheckFlagsColon'
+  FLAGS_COLON_ERROR_STATE = 'FlagsColonErrorState'
+  INVALID_FLAG_STATE = 'InvalidFlagState'
 
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
   NOT_GREEDY_SYMBOL = '?'
+  SET_FLAGS_SYMBOL = '?'
   ANY_CHAR_SYMBOL = '.'
   ONE_OR_MORE_SYMBOL = '+'
   END_OF_EXPRESSION_SYMBOL = ';'
@@ -85,7 +91,12 @@ class RegexState(object):
   NON_WHITESPACE_SYMBOL = '\S'
   ALPHANUMERIC_SYMBOL = '\w'
   NON_ALPHANUMERIC_SYMBOL = '\W'
-  
+  IGNORE_CASE_FLAG_SYMBOL = 'i'
+  LOCALE_DEPENDENT_FLAG_SYMBOL = 'L'
+  MULTILINE_FLAG_SYMBOL = 'm'
+  DOT_ALL_FLAG_SYMBOL = 's'
+  UNICODE_FLAG_SYMBOL = 'u'
+  FLAG_CONTINUATION_SYMBOL = ','
 
   END_OF_INPUT_TOKEN = 'end_of_input'
   GREEDY_TOKEN = 'greedy'
@@ -122,6 +133,12 @@ class RegexState(object):
   NON_WHITESPACE_TOKEN = 'non_whitespace'
   ALPHANUMERIC_TOKEN = 'alphanumeric'
   NON_ALPHANUMERIC_TOKEN = 'non_alphanumeric'
+  SET_FLAGS_TOKEN = 'set_flags'
+  IGNORE_CASE_FLAG_TOKEN = 'ignore_case'
+  LOCALE_DEPENDENT_FLAG_TOKEN = 'locale'
+  MULTILINE_FLAG_TOKEN = 'multiline'
+  DOT_ALL_FLAG_TOKEN = 'any_char_all'
+  UNICODE_FLAG_TOKEN = 'unicode'
 
   def __init__(self):
     self.transitions = {}
@@ -138,6 +155,11 @@ class RegexState(object):
                                      self.NON_WHITESPACE_TOKEN: self.NON_WHITESPACE_SYMBOL,
                                      self.ALPHANUMERIC_TOKEN: self.ALPHANUMERIC_SYMBOL,
                                      self.NON_ALPHANUMERIC_TOKEN: self.NON_ALPHANUMERIC_SYMBOL }
+    self.flag_set = { self.IGNORE_CASE_FLAG_TOKEN: self.IGNORE_CASE_FLAG_SYMBOL,
+                      self.LOCALE_DEPENDENT_FLAG_TOKEN: self.LOCALE_DEPENDENT_FLAG_SYMBOL,
+                      self.MULTILINE_FLAG_TOKEN: self.MULTILINE_FLAG_SYMBOL,
+                      self.DOT_ALL_FLAG_TOKEN: self.DOT_ALL_FLAG_SYMBOL,
+                      self.UNICODE_FLAG_TOKEN: self.UNICODE_FLAG_SYMBOL }
 
   def do_action(self, parser):
     '''
@@ -288,6 +310,14 @@ class InvalidRepetitionsErrorState(RegexState):
 class InvalidRepetitionRangeErrorState(RegexState):
   def do_action(self, parser):
     raise regexeze_errors.InvalidRepetitionRangeError(parser)
+
+class InvalidFlagState(RegexState):
+  def do_action(self, parser):
+    raise regexeze_errors.InvalidFlagError(parser)
+
+class FlagsColonErrorState(RegexState):
+  def do_action(self, parser):
+    raise regexeze_errors.FlagsColonError(parser)
 
 class StartExpression(RegexState):
   def __init__(self):
@@ -733,6 +763,49 @@ class CheckColon(RegexState):
   def get_token_not_found_transition(self, token):
     return self.COLON_ERROR_STATE
 
+class FlagState(PotentiallyFinalRegexState):
+  '''
+  State in which a flag is being specified
+  '''
+  def __init__(self):
+    super(FlagState, self).__init__()
+    self.transitions[self.FLAG_CONTINUATION_SYMBOL] = self.SET_FLAGS
+
+  def get_token_not_found_transition(self, token):
+    return self.INVALID_FLAG_STATE
+
+  def do_action(self, parser):
+    parser.current_fragment += self.flag_set[parser.current_token]
+
+class SetFlags(RegexState):
+  '''
+  State in which a flag is being specified
+  '''
+  def __init__(self):
+    super(SetFlags, self).__init__()
+
+  def get_token_not_found_transition(self, token):
+    if token in self.flag_set:
+      return self.FLAG_STATE
+    return self.INVALID_FLAG_STATE
+
+class CheckFlagsColon(RegexState):
+  '''
+  State after which the set flags token has been indicated
+  Set flags expressions don't count as an expression, so undoes the +1 to n_expressions
+  Checks for colon
+  '''
+  def __init__(self):
+    super(CheckFlagsColon, self).__init__()
+    self.transitions[self.COLON_TOKEN] = self.SET_FLAGS
+
+  def get_token_not_found_transition(self, token):
+    return self.FLAGS_COLON_ERROR_STATE
+
+  def do_action(self, parser):
+    parser.n_expressions -= 1
+    parser.current_fragment += parser.OPEN_PARENTHESIS + self.SET_FLAGS_SYMBOL
+
 class NewExpression(RegexState):
   '''
   State at the very beginning of expression, or after a semi-colon
@@ -742,6 +815,7 @@ class NewExpression(RegexState):
   def __init__(self):
     super(NewExpression, self).__init__()
     self.transitions[self.END_OF_INPUT_TOKEN] = self.END_OF_EXPRESSIONS
+    self.transitions[self.SET_FLAGS_TOKEN] = self.CHECK_FLAGS_COLON
     self.after_or = False
 
   def get_token_not_found_transition(self, token):
@@ -806,7 +880,12 @@ class RegexStateFactory(object):
                        RegexState.OR_EXCEPT: OrExcept(),
                        RegexState.COMPLEMENT_CLASS_STATE: ComplementClassState(),
                        RegexState.UNMODIFIABLE_SPECIAL_CHAR_STATE: UnmodifiableSpecialCharState(),
-                       RegexState.SPECIAL_CHAR_STATE: SpecialCharState()}
+                       RegexState.SPECIAL_CHAR_STATE: SpecialCharState(),
+                       RegexState.SET_FLAGS: SetFlags(),
+                       RegexState.FLAG_STATE: FlagState(),
+                       RegexState.CHECK_FLAGS_COLON: CheckFlagsColon(),
+                       RegexState.FLAGS_COLON_ERROR_STATE: FlagsColonErrorState(),
+                       RegexState.INVALID_FLAG_STATE: InvalidFlagState()}
 
   @staticmethod
   def get_next_state(state, token):
