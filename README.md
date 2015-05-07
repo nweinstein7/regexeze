@@ -287,9 +287,15 @@ For example:
 set_flags: ignore_case, multiline; expr: 'a'; expr: end_of_string;
 ```
 
-A set_flags expression can go anywhere a standar expr expression would go. As you can see in the above example, flags are separated by commas and end with a semicolon.  You can set flags as many times as you want in an expression, but they only count once. A set_flags expression does not "count" as a standard expression, and therefore can be followed by an or.
+A *set_flags* expression can go anywhere a standard *expr* expression would go. As you can see in the above example, flags are separated by commas and end with a semicolon.  You can set flags as many times as you want in an expression, but they only count once. 
 
-Flags:
+A *set_flags* expression does not "count" as a standard expression, and therefore can follow or be followed by an expression containing *or*. For example, the following will match 'a', 'b', 'A', or 'B':
+
+```
+expr: 'a' or 'b'; set_flags: ignore_case; # valid regexeze expression
+```
+
+List of flags:
 * *ignore_case*: case-insensitive matching, so "A" and "a" are identical
 * *locale*: if set, the keyword "alphanumeric" (see below)  will depend on whichever locale you are in - different places have different definitions of alphanumeric
 * *multiline*: start_of_string and end_of_string will match at the end of *lines*, not just at the start and end of strings
