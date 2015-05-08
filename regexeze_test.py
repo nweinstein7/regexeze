@@ -91,7 +91,7 @@ class test_regex_parser_machine(unittest.TestCase):
                     'After incorrect start of second expression, should end up in NewExpressionErrorState')
 
     #TEST MISSING COLON
-    self.rpm = regexeze.RegexParserMachine('expr any_char;')
+    self.rpm = regexeze.RegexParserMachine('expr "hello";')
     self.assertRaises(regexeze_errors.ColonError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regexeze_states.ColonErrorState),
                     'After missing colon, should end up in ColonErrorState')
@@ -183,6 +183,92 @@ class test_regex_parser_machine(unittest.TestCase):
     self.rpm = regexeze.RegexParserMachine('expr: non_alphanumeric;')
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '(\W)', 'non_alphanumeric keyword')
+
+    #TEST GROUP NAMES
+    #test simple group name
+    self.rpm = regexeze.RegexParserMachine('expr one: "1";')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?P<one>1)', 'Simple group name')
+
+    #test multiple group names
+    self.rpm = regexeze.RegexParserMachine('expr one: "1"; expr two: "2";')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?P<one>1)(?P<two>2)', 'Two group names in sequence')
+
+    #test group names interspersed with regular group names
+    self.rpm = regexeze.RegexParserMachine('expr one: "1"; expr: "2"; expr three: "3"; expr: "4";')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?P<one>1)(2)(?P<three>3)(4)', 'Named groups interspersed with standard expressions')
+
+    #test colon after group names
+    self.rpm = regexeze.RegexParserMachine('expr one two;')
+    self.assertRaises(regexeze_errors.ColonError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.ColonErrorState), 'Should enforce colon after group name')
+
+    #test invalid group name - preexisting group
+    self.rpm = regexeze.RegexParserMachine('expr one: "1"; expr one: "1";')
+    self.assertRaises(regexeze_errors.InvalidGroupNameError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.InvalidGroupNameState), 'Group names can not have the same name as a previous group')
+
+    #test invalid group name - collision with regexeze keyword
+    self.rpm = regexeze.RegexParserMachine('expr alphanumeric: alphanumeric;')
+    self.assertRaises(regexeze_errors.InvalidGroupNameError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.InvalidGroupNameState), 'Group names can not have the same name as a regexeze keyword')
+
+    #test nested group name
+    self.rpm = regexeze.RegexParserMachine('expr one: [ expr two: [ expr three: "3"; ];];')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?P<one>(?P<two>(?P<three>3)))', 'Deeply nested group names')
+
+    #test nested group name followed by group collision
+    self.rpm = regexeze.RegexParserMachine('expr one: [ expr two: [ expr three: "3"; ];]; expr three: 3;')
+    self.assertRaises(regexeze_errors.InvalidGroupNameError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.state, regexeze_states.InvalidGroupNameState), 'Namespace should carry from lower nesting level to higher')
+
+    #test nested group name that collides with parent
+    self.rpm = regexeze.RegexParserMachine('expr one: [ expr one: [ expr three: "3"; ];];')
+    self.assertRaises(regexeze_errors.InvalidGroupNameError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.child.state, regexeze_states.InvalidGroupNameState), 'Namespace should carry from higher nesting level to lower')
+
+    #test or with group names
+    self.rpm = regexeze.RegexParserMachine("expr one: 'a' or [ expr two: 'b';];")
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val,'(?P<one>a)|((?P<two>b))', 'Should be able to use group names after or')
+
+    #test invalid group name after or
+    self.rpm = regexeze.RegexParserMachine("expr one: 'a' or [ expr two: 'b'; expr two: 'b';];")
+    self.assertRaises(regexeze_errors.InvalidGroupNameError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.child.state, regexeze_states.InvalidGroupNameState), 'Namespace should carry over after or')
+
+    self.rpm = regexeze.RegexParserMachine("expr one: 'a' or [ expr one: 'b'; expr two: 'b';];")
+    self.assertRaises(regexeze_errors.InvalidGroupNameError, self.rpm.parse)
+    self.assertTrue(isinstance(self.rpm.child.state, regexeze_states.InvalidGroupNameState), 'Namespace should carry over after or')
+
+    #TEST GROUP REFS
+    #test simple group ref
+    self.rpm = regexeze.RegexParserMachine('expr one: "1"; expr: one;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?P<one>1)(?P=one)', 'Simple group ref')
+
+    #test nested group ref - higher to lower
+    self.rpm = regexeze.RegexParserMachine('expr one: [ expr: one; ];')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?P<one>(?P=one))', 'Child group can reference its parent, though this is a degenerate case')
+
+    #test nested group ref - lower to higher
+    self.rpm = regexeze.RegexParserMachine('expr: [ expr one: "1"; ]; expr: one;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '((?P<one>1))(?P=one)', 'Expression outside of nested expression can reference previous nested expression')
+
+    #test group ref before definition - should be treated as plain text
+    self.rpm = regexeze.RegexParserMachine('expr: one; expr one: "1";')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(one)(?P<one>1)', 'Expression outside of nested expression can reference previous nested expression')
+
+    #test group ref with modifier
+    self.rpm = regexeze.RegexParserMachine('expr one: "1"; expr: one for zero_or_one;')
+    self.rpm.parse()
+    self.assertEquals(self.rpm.ret_val, '(?P<one>1)(?P=one)?', 'group refs should be modifiable')
 
     #TEST MODIFIERS
     #Test invalid modifier

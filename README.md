@@ -42,7 +42,7 @@ optional arguments:
 ```
 
 ###Syntax:
-Regular expressions consist of series of "expressions", which start with the keyword "expr" (pronounced "exper"?) followed by a colon. They end with semicolon (;).
+Regular expressions consist of series of "expressions", which start with the keyword "expr" (pronounced "exper"?) and typically followed by a colon. They end with semicolon (;).
 
 >NOTE 1: Always remember to end with a semicolon!
 
@@ -363,3 +363,32 @@ expr: #; #ERROR
 ```
 expr: "#"; #CORRECT: matches a single "#" symbol
 ```
+
+###Group Names:
+Each expression starting with expr can be *named*.
+This facilitates easier retrieval of the match of that expression.
+
+For example, the following creates a group called areaCode:
+
+```
+expr areaCode: digit for 3;
+```
+
+No two expression groups can have the same name:
+
+```
+expr areaCode: digit for 3; expr areaCode: any_char from '0' to '9' for 3; #ERROR: to expr's with same group name
+```
+
+Expressions also cannot share names with regexeze keywords, to avoid confusion:
+```
+expr any_char: any_char; #ERROR: group names can't be the same as certain regexeze keywords
+```
+
+Group names also allow for group *references*. Naming an expression group adds that name to the "namespace" of the expression, and from then on, it can be used as a keyword.  For example:
+
+```
+expr quote: any_char of "'" or_of '"'; expr: alphanumeric for 0 up_to 10 not_greedy; expr: quote;
+```
+
+"expr: quote" will match whatever the expr named quote matched, which in this case might be useful if you're not sure whether you'll get a single or double quotation mark. So, the above expression would match 'hello' or "hello".

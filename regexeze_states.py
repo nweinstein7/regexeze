@@ -65,6 +65,10 @@ class RegexState(object):
   CHECK_FLAGS_COLON = 'CheckFlagsColon'
   FLAGS_COLON_ERROR_STATE = 'FlagsColonErrorState'
   INVALID_FLAG_STATE = 'InvalidFlagState'
+  CHECK_GROUP_NAME = 'CheckGroupName'
+  GROUP_NAME_STATE = 'GroupNameState'
+  INVALID_GROUP_NAME_STATE = 'InvalidGroupNameState'
+  GROUP_REF_STATE = 'GroupRefState'
 
   ZERO_OR_MORE_SYMBOL = '*'
   ZERO_OR_ONE_SYMBOL = '?'
@@ -74,6 +78,8 @@ class RegexState(object):
   ONE_OR_MORE_SYMBOL = '+'
   END_OF_EXPRESSION_SYMBOL = ';'
   M_REPETITIONS_FORMAT = '{{{0}}}'
+  GROUP_NAME_FORMAT = '(?P<{0}>'
+  GROUP_REF_FORMAT = '(?P={0}'
   OPEN_CLASS_SYMBOL = '['
   CLOSE_CLASS_SYMBOL = ']'
   CLASS_RANGE_SYMBOL = '-'
@@ -155,6 +161,9 @@ class RegexState(object):
                                      self.NON_WHITESPACE_TOKEN: self.NON_WHITESPACE_SYMBOL,
                                      self.ALPHANUMERIC_TOKEN: self.ALPHANUMERIC_SYMBOL,
                                      self.NON_ALPHANUMERIC_TOKEN: self.NON_ALPHANUMERIC_SYMBOL }
+    self.full_char_set = dict(self.unmodifiable_auxiliary_character_set, **self.auxiliary_character_set)
+    self.full_char_set[self.ANY_CHAR_TOKEN] = self.ANY_CHAR_TOKEN
+    self.full_char_set[self.NESTED_OPEN_TOKEN] = self.NESTED_OPEN_TOKEN
     self.flag_set = { self.IGNORE_CASE_FLAG_TOKEN: self.IGNORE_CASE_FLAG_SYMBOL,
                       self.LOCALE_DEPENDENT_FLAG_TOKEN: self.LOCALE_DEPENDENT_FLAG_SYMBOL,
                       self.MULTILINE_FLAG_TOKEN: self.MULTILINE_FLAG_SYMBOL,
@@ -315,6 +324,10 @@ class InvalidFlagState(RegexState):
   def do_action(self, parser):
     raise regexeze_errors.InvalidFlagError(parser)
 
+class InvalidGroupNameState(RegexState):
+  def do_action(self, parser):
+    raise regexeze_errors.InvalidGroupNameError(parser)
+
 class FlagsColonErrorState(RegexState):
   def do_action(self, parser):
     raise regexeze_errors.FlagsColonError(parser)
@@ -327,6 +340,8 @@ class StartExpression(RegexState):
     self.transitions[self.NESTED_OPEN_TOKEN] = self.NEW_NESTED_EXPRESSION
 
   def get_token_not_found_transition(self, token):
+    if token in self.namespace:
+      return self.GROUP_REF_STATE
     if token in self.unmodifiable_auxiliary_character_set:
       return self.UNMODIFIABLE_SPECIAL_CHAR_STATE
     elif token in self.auxiliary_character_set:
@@ -335,6 +350,8 @@ class StartExpression(RegexState):
 
   def do_action(self, parser):
     parser.child = regexeze.RegexParserMachine('')
+    self.namespace = parser.namespace
+    parser.child.namespace.update(parser.namespace)
 
 class Or(StartExpression):
   '''
@@ -347,9 +364,8 @@ class Or(StartExpression):
   def do_action(self, parser):
     parser.add_current_fragment()
     parser.add_or()
-    parser.child = regexeze.RegexParserMachine('')
     parser.after_or = True
-
+    super(Or, self).do_action(parser)
 
 class SetGreedy(PotentiallyFinalRegexState):
   '''
@@ -660,6 +676,17 @@ class AnyChar(ModifiablePotentiallyFinalRegexState):
     super(AnyChar, self).do_action(parser)
     parser.current_fragment = parser.OPEN_PARENTHESIS + self.ANY_CHAR_SYMBOL
 
+class GroupRefState(ModifiablePotentiallyFinalRegexState):
+  '''
+  State in which a reference to an earlier group has been made by name
+  '''
+  def __init__(self):
+    super(GroupRefState, self).__init__()
+
+  def do_action(self, parser):
+    super(GroupRefState, self).do_action(parser)
+    parser.current_fragment = self.GROUP_REF_FORMAT.format(parser.current_token)
+
 class SpecialCharState(ModifiablePotentiallyFinalRegexState):
   '''
   Parent class for special characters (in place of plaintext, not in character classes)
@@ -712,6 +739,7 @@ class EndNestedExpression(ModifiablePotentiallyFinalRegexState):
     super(EndNestedExpression, self).do_action(parser)
     parser.child.end()
     parser.current_fragment = parser.OPEN_PARENTHESIS + parser.child.ret_val
+    parser.namespace.update(parser.child.namespace)
 
 class NestedExpression(RegexState):
   '''
@@ -762,6 +790,39 @@ class CheckColon(RegexState):
 
   def get_token_not_found_transition(self, token):
     return self.COLON_ERROR_STATE
+
+class GroupNameState(RegexState):
+  '''
+  State in which a group name has been specified
+  '''
+  def __init__(self):
+    super(GroupNameState, self).__init__()
+    self.transitions[self.COLON_TOKEN] = self.START_EXPRESSION
+
+  def get_token_not_found_transition(self, token):
+    return self.COLON_ERROR_STATE
+
+  def do_action(self, parser):
+    parser.OPEN_PARENTHESIS = self.GROUP_NAME_FORMAT.format(parser.current_token)
+    parser.namespace[parser.current_token] = parser.current_token
+
+class CheckGroupName(RegexState):
+  '''
+  State after expr keyword, in which parser is checking to see if this expression will have name
+  @param namespace: the namespace of the parser to be checked
+  @type namespace: dict string->string
+  '''
+  def __init__(self):
+    super(CheckGroupName, self).__init__()
+    self.transitions[self.COLON_TOKEN] = self.START_EXPRESSION
+
+  def get_token_not_found_transition(self, token):
+    if token in self.namespace or token in self.full_char_set:
+      return self.INVALID_GROUP_NAME_STATE
+    return self.GROUP_NAME_STATE
+
+  def do_action(self, parser):
+    self.namespace = parser.namespace
 
 class FlagState(PotentiallyFinalRegexState):
   '''
@@ -822,7 +883,7 @@ class NewExpression(RegexState):
     if token == self.EXPRESSION_TOKEN and self.after_or:
       return self.MULTIPLE_OR_ERROR_STATE
     elif token == self.EXPRESSION_TOKEN:
-      return self.CHECK_COLON
+      return self.CHECK_GROUP_NAME
     return self.NEW_EXPRESSION_ERROR_STATE
 
   def do_action(self, parser):
@@ -885,7 +946,11 @@ class RegexStateFactory(object):
                        RegexState.FLAG_STATE: FlagState(),
                        RegexState.CHECK_FLAGS_COLON: CheckFlagsColon(),
                        RegexState.FLAGS_COLON_ERROR_STATE: FlagsColonErrorState(),
-                       RegexState.INVALID_FLAG_STATE: InvalidFlagState()}
+                       RegexState.INVALID_FLAG_STATE: InvalidFlagState(),
+                       RegexState.CHECK_GROUP_NAME: CheckGroupName(),
+                       RegexState.GROUP_NAME_STATE: GroupNameState(),
+                       RegexState.INVALID_GROUP_NAME_STATE: InvalidGroupNameState(),
+                       RegexState.GROUP_REF_STATE: GroupRefState()}
 
   @staticmethod
   def get_next_state(state, token):

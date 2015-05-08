@@ -90,10 +90,10 @@ class MultipleOrError(Error):
 
 class ColonError(Error):
   '''
-  Exception raised when there is a missing colon
+  Exception raised when there is a missing colon after group name
   '''
   def __init__(self, parser):
-    self.msg = 'expr needs a colon'
+    self.msg = 'expr needs a colon after itself or group name definition'
     self.msg += '\n' + self.show_error_location(parser)
 
 class FlagsColonError(Error):
@@ -110,6 +110,14 @@ class InvalidFlagError(Error):
   '''
   def __init__(self, parser):
     self.msg = 'Flags must be valid and listed in a comma-separated list, followed by a semicolon (;).\nValid flags: ignore_case, multiline, locale, any_char_all, unicode.\nFlags may be listed in any order.'
+    self.msg += '\n' + self.show_error_location(parser)
+
+class InvalidGroupNameError(Error):
+  '''
+  Exception raised when aa group is already in the namespace
+  '''
+  def __init__(self, parser):
+    self.msg = 'Invalid group name: <' + parser.current_token + '> is already used as a group name, or is an existing regexeze keyword'
     self.msg += '\n' + self.show_error_location(parser)
 
 class InvalidModifierError(Error):

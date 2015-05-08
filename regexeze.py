@@ -31,6 +31,8 @@ class RegexParserMachine(object):
   @type n_expressions: int
   @param m_repetitions: the lower bound of the repetition interval indicated
   @type m_repetitions: int
+  @param namespace: the official namespace of groups defined
+  @type namespace: dict string -> string
   '''
   END_OF_INPUT = 'end_of_input'
   OPEN_PARENTHESIS = '('
@@ -53,6 +55,7 @@ class RegexParserMachine(object):
     self.n_expressions = 0
     self.current_start_range = ""
     self.m_repetitions = 0
+    self.namespace = {}
 
   def parse(self, source=""):
    '''
@@ -100,6 +103,7 @@ class RegexParserMachine(object):
     self.ret_val += self.current_fragment + self.CLOSE_PARENTHESIS + self.current_modifier
     self.current_fragment = ''
     self.current_modifier = ''
+    self.OPEN_PARENTHESIS = '('
 
   def add_or(self):
     self.ret_val += self.OR_SYMBOL
