@@ -17,7 +17,7 @@ python regexeze.py
 
 - Parse regexes from a string:
 ```
-python regexeze -i "expr: 'a'"
+python regexeze -i "expr: 'a';"
 ```
 
 - Parse regexes from file:
