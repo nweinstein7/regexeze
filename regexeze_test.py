@@ -603,25 +603,25 @@ class test_regex_parser_machine(unittest.TestCase):
 
     #TEST FLAGS
     #test basic positive use of flags
-    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case, locale, multiline, dot_all, unicode; expr: 'a';''')
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case, locale, multiline, any_char_all, unicode; expr: 'a';''')
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '(?iLmsu)(a)', "Flag keywords should be handled properly")
 
     #test basic negative use of flags
     #missing colon
-    self.rpm = regexeze.RegexParserMachine('''set_flags ignore_case, locale, multiline, dot_all, unicode; expr: 'a';''')
+    self.rpm = regexeze.RegexParserMachine('''set_flags ignore_case, locale, multiline, any_char_all, unicode; expr: 'a';''')
     self.assertRaises(regexeze_errors.FlagsColonError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regexeze_states.FlagsColonErrorState),
                     'Should enforce colon after set_flags keyword')
 
     #incorrect flag
-    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case, hello, multiline, dot_all, unicode; expr: 'a';''')
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case, hello, multiline, any_char_all, unicode; expr: 'a';''')
     self.assertRaises(regexeze_errors.InvalidFlagError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regexeze_states.InvalidFlagState),
                     'Flags should be valid')
 
     #flags not comma-separated
-    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case dotall, multiline, dot_all, unicode; expr: 'a';''')
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case dotall, multiline, any_char_all, unicode; expr: 'a';''')
     self.assertRaises(regexeze_errors.InvalidFlagError, self.rpm.parse)
     self.assertTrue(isinstance(self.rpm.state, regexeze_states.InvalidFlagState),
                     'Flags should be comma separated')
@@ -634,7 +634,7 @@ class test_regex_parser_machine(unittest.TestCase):
 
     #test flag edge cases
     #empty expression with flags
-    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case, locale, multiline, dot_all, unicode;''')
+    self.rpm = regexeze.RegexParserMachine('''set_flags: ignore_case, locale, multiline, any_char_all, unicode;''')
     self.rpm.parse()
     self.assertEquals(self.rpm.ret_val, '(?iLmsu)', "An expression can be empty except for flags")
 

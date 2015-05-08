@@ -109,7 +109,7 @@ class InvalidFlagError(Error):
   Exception raised when an invalid flag is selected
   '''
   def __init__(self, parser):
-    self.msg = 'Flags must be valid and listed in a comma-separated list, followed by a semicolon (;).\nValid flags: ignore_case, multiline, locale, dot_all, unicode.\nFlags may be listed in any order.'
+    self.msg = 'Flags must be valid and listed in a comma-separated list, followed by a semicolon (;).\nValid flags: ignore_case, multiline, locale, any_char_all, unicode.\nFlags may be listed in any order.'
     self.msg += '\n' + self.show_error_location(parser)
 
 class InvalidModifierError(Error):
