@@ -377,7 +377,7 @@ expr areaCode: digit for 3;
 No two expression groups can have the same name:
 
 ```
-expr areaCode: digit for 3; expr areaCode: any_char from '0' to '9' for 3; #ERROR: to expr's with same group name
+expr areaCode: digit for 3; expr areaCode: any_char from '0' to '9' for 3; #ERROR: two expr's with same group name
 ```
 
 Expressions also cannot share names with regexeze keywords, to avoid confusion:
