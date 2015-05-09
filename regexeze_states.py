@@ -4,7 +4,7 @@ import re
 
 class RegexState(object):
   '''
-  A state of the RegexParserMachine
+  A state of the RegexezeObject
   @param auxiliary_character_set: set of special characters that appear in character classes AND plaintext
   @type auxiliary_character_set: dictionary string -> string
   @param start_or_end_of_string_character_set: set of characters denoting start and end of string
@@ -349,7 +349,7 @@ class StartExpression(RegexState):
     return self.PLAIN_TEXT
 
   def do_action(self, parser):
-    parser.child = regexeze.RegexParserMachine('')
+    parser.child = regexeze.RegexezeObject('')
     self.namespace = parser.namespace
     parser.child.namespace.update(parser.namespace)
 

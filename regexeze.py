@@ -4,7 +4,7 @@ import sys
 import re
 import argparse
 
-class RegexParserMachine(object):
+class RegexezeObject(object):
   '''
   A deterministic finite state machine for validating and parsing regex language
   @param state: the state of the machine
@@ -22,7 +22,7 @@ class RegexParserMachine(object):
   @param approximate_location: the approximate position through the arg_string (simply for error reporting, showing where in the string the error is)
   @type approximate_location: int
   @param child: the child machine used to parse nested expressions
-  @type child: RegexParserMachine
+  @type child: RegexezeObject
   @param after_or: whether the parser has hit an or (in which case it should proceed to another expression after semicolon, because that would be confusing)
   @type after_or: bool
   @param current_start_range: for character ranges, must know the start range in order to determine the order
@@ -122,9 +122,9 @@ def main(input_string=None, filename=None):
   @param filename: name of file to be parsed
   @type filename: str
   '''
-  my_rpm = RegexParserMachine('')
+  my_rpm = RegexezeObject('')
   if input_string:
-    my_rpm = RegexParserMachine(input_string);
+    my_rpm = RegexezeObject(input_string);
     my_rpm.parse()
   elif filename:
     my_rpm.parse(filename)
