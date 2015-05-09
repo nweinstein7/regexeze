@@ -850,5 +850,14 @@ class test_regex_parser_machine(unittest.TestCase):
     self.assertEquals(matcher.match(' ').group(0), ' ', "Should be able to match a character set including keyword new_line and slash")
     self.assertEquals(matcher.match('\\').group(0), '\\', "Should be able to match a character set including keyword new_line and slash")
 
+  def test_compile(self):
+    '''
+    Tests the compile method
+    '''
+    #test compiling a simple regexeze object
+    regexezeObject = regexeze.compile("expr: 'a';")
+    self.assertEquals('(a)', regexezeObject.ret_val, "compile should be able to compile a simple regexeze object")
+      
+
 if __name__ == '__main__':
     unittest.main()

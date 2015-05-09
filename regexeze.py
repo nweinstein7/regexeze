@@ -114,6 +114,20 @@ class RegexezeObject(object):
     '''
     self.current_fragment = self.OPEN_PARENTHESIS + re.escape(self.current_token)
 
+#wrapper methods that produce same functionality as python re module, only with regexeze syntax
+def compile(pattern=""):
+  '''
+  Compile a regexeze expression into a regexeze object
+  @param pattern: the pattern, in regexeze syntax, to be compiled
+  @type pattern: str
+  @return: the compiled regexeze object
+  @rtype: RegexezeObject
+  '''
+  regexezeObject = RegexezeObject(pattern)
+  regexezeObject.parse()
+  return regexezeObject
+
+
 def main(input_string=None, filename=None):
   '''
   Main method for the program
@@ -122,15 +136,15 @@ def main(input_string=None, filename=None):
   @param filename: name of file to be parsed
   @type filename: str
   '''
-  my_rpm = RegexezeObject('')
+  regexezeObject = RegexezeObject('')
   if input_string:
-    my_rpm = RegexezeObject(input_string);
-    my_rpm.parse()
+    regexezeObject = RegexezeObject(input_string);
+    regexezeObject.parse()
   elif filename:
-    my_rpm.parse(filename)
+    regexezeObject.parse(filename)
   else:
-    my_rpm.parse(sys.stdin)
-  print my_rpm.ret_val
+    regexezeObject.parse(sys.stdin)
+  print regexezeObject.ret_val
 
 if __name__ == '__main__':
   argparser = argparse.ArgumentParser(description='Parses a regular expression in regexeze. If no input string or file is supplied, parses from command line.')
