@@ -79,7 +79,7 @@ class RegexState(object):
   END_OF_EXPRESSION_SYMBOL = ';'
   M_REPETITIONS_FORMAT = '{{{0}}}'
   GROUP_NAME_FORMAT = '(?P<{0}>'
-  GROUP_REF_FORMAT = '(?P={0}'
+  GROUP_REF_FORMAT = '(?P={0})'
   OPEN_CLASS_SYMBOL = '['
   CLOSE_CLASS_SYMBOL = ']'
   CLASS_RANGE_SYMBOL = '-'
@@ -685,7 +685,7 @@ class GroupRefState(ModifiablePotentiallyFinalRegexState):
 
   def do_action(self, parser):
     super(GroupRefState, self).do_action(parser)
-    parser.current_fragment = self.GROUP_REF_FORMAT.format(parser.current_token)
+    parser.current_fragment = parser.OPEN_PARENTHESIS + self.GROUP_REF_FORMAT.format(parser.current_token)
 
 class SpecialCharState(ModifiablePotentiallyFinalRegexState):
   '''

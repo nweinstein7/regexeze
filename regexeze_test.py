@@ -248,17 +248,17 @@ class test_regex_parser_machine(unittest.TestCase):
     #test simple group ref
     self.regexObject = regexeze.RegexezeObject('expr one: "1"; expr: one;')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(?P<one>1)(?P=one)', 'Simple group ref')
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>1)((?P=one))', 'Simple group ref')
 
     #test nested group ref - higher to lower
     self.regexObject = regexeze.RegexezeObject('expr one: [ expr: one; ];')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(?P<one>(?P=one))', 'Child group can reference its parent, though this is a degenerate case')
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>((?P=one)))', 'Child group can reference its parent, though this is a degenerate case')
 
     #test nested group ref - lower to higher
     self.regexObject = regexeze.RegexezeObject('expr: [ expr one: "1"; ]; expr: one;')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '((?P<one>1))(?P=one)', 'Expression outside of nested expression can reference previous nested expression')
+    self.assertEquals(self.regexObject.ret_val, '((?P<one>1))((?P=one))', 'Expression outside of nested expression can reference previous nested expression')
 
     #test group ref before definition - should be treated as plain text
     self.regexObject = regexeze.RegexezeObject('expr: one; expr one: "1";')
@@ -268,7 +268,12 @@ class test_regex_parser_machine(unittest.TestCase):
     #test group ref with modifier
     self.regexObject = regexeze.RegexezeObject('expr one: "1"; expr: one for zero_or_one;')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(?P<one>1)(?P=one)?', 'group refs should be modifiable')
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>1)((?P=one))?', 'group refs should be modifiable')
+
+    #test self referential group ref
+    self.regexObject = regexeze.RegexezeObject('expr one: one;')
+    self.regexObject.parse()
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>(?P=one))', 'a named group should be able to contain a reference to itself, though this is a degenerate case')
 
     #TEST MODIFIERS
     #Test invalid modifier
