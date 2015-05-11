@@ -127,6 +127,18 @@ def compile(pattern=""):
   regexezeObject.parse()
   return regexezeObject
 
+def search(pattern="", target_string=""):
+  '''
+  Search a string for the pattern
+  @param pattern: the pattern, in regexeze syntax, to use for searching
+  @type pattern: str
+  @param target_string: the string to be searched
+  @type target_string: str
+  @return: the match object resulting from the search
+  @rtype: re.MatchObject
+  '''
+  regexezeObject = compile(pattern)
+  return re.search(regexezeObject.ret_val, target_string)
 
 def main(input_string=None, filename=None):
   '''

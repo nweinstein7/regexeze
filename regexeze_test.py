@@ -862,7 +862,16 @@ class test_regex_parser_machine(unittest.TestCase):
     #test compiling a simple regexeze object
     regexezeObject = regexeze.compile("expr: 'a';")
     self.assertEquals('(a)', regexezeObject.ret_val, "compile should be able to compile a simple regexeze object")
-      
+
+  def test_search(self):
+    '''
+    Tests the search method
+    '''
+    #test searching for a simple regexeze match in a string
+    self.assertIsNotNone(regexeze.search("expr: 'd';", "dog"), "searching for a simple match should work")
+
+    #test searching for a regex that does not match
+    self.assertIsNone(regexeze.search("expr: 'The End.'; expr: end_of_string;", "The End. Just kidding."), "Search should return None when no match is found")
 
 if __name__ == '__main__':
     unittest.main()
