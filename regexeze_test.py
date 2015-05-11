@@ -873,5 +873,15 @@ class test_regex_parser_machine(unittest.TestCase):
     #test searching for a regex that does not match
     self.assertIsNone(regexeze.search("expr: 'The End.'; expr: end_of_string;", "The End. Just kidding."), "Search should return None when no match is found")
 
+  def test_match(self):
+    '''
+    Tests the match method
+    '''
+    #test matching with a simple regexeze pattern
+    self.assertIsNotNone(regexeze.match("expr: digit for 3;", "123"))
+
+    #test matching with a simple regexeze pattern and string that doesn't match
+    self.assertIsNone(regexeze.match("expr: digit for 3;", "12"))
+
 if __name__ == '__main__':
     unittest.main()
