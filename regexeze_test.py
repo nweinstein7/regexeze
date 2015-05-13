@@ -4,13 +4,20 @@ import regexeze_states
 import regexeze
 import sys
 import re
+import argparse
+from StringIO import StringIO
 
-class test_regex_parser_machine(unittest.TestCase):
+class RegexezeTestCase(unittest.TestCase):
+  '''
+  parent class for all test cases, with constants
+  '''
+  TEST_FILE_NAME = "test_files/test_file.txt"
+  EMPTY_FILE_NAME = "test_files/empty_file.txt"
+  TEST_ERROR_FILE_NAME = "test_files/test_error_file.txt"
+
+class test_regex_parser_machine(RegexezeTestCase):
   def setUp(self):
     self.regexObject = regexeze.RegexezeObject('')
-    self.TEST_FILE_NAME = "test_files/test_file.txt"
-    self.EMPTY_FILE_NAME = "test_files/empty_file.txt"
-    self.TEST_ERROR_FILE_NAME = "test_files/test_error_file.txt"
 
   def test_init(self):
     '''
@@ -887,5 +894,150 @@ class test_regex_parser_machine(unittest.TestCase):
     #test matching with a simple regexeze pattern and string that doesn't match
     self.assertIsNone(regexeze.match("expr: digit for 3;", "12"))
 
+class RegexezeSubparserTest(RegexezeTestCase):
+  '''
+  Test case for testing the command line subparsers
+  '''
+  def setUp(self):
+    self.args = argparse.Namespace()
+    self.out = StringIO()
+    self.saved_stdout = sys.stdout
+    sys.stdout = self.out
+
+    #simple pattern to be tested
+    self.pattern = 'expr: "a";'
+
+    #filename to be read from
+    self.TEST_FILE_NAME = "test_files/test_file.txt"
+
+    #the function that this test calls
+    self.function = None
+
+  def runFunction(self, args):
+    '''
+    Runs the function with the given args
+    @param args: the arguments to use
+    @type args: argparse.Namespace
+    '''
+    self.function(args)
+    self.output = self.out.getvalue().strip()
+
+  def testPattern(self):
+    '''
+    Test what happens when subparser is given a pattern
+    '''
+    self.args.pattern = self.pattern
+    self.args.filename = ""
+    self.runFunction(self.args)
+
+  def testFilename(self):
+    '''
+    Tests what happens when subparser is given a filename
+    '''
+    self.args.pattern = ""
+    self.args.filename = self.TEST_FILE_NAME
+    self.runFunction(self.args)
+
+  def testStdin(self):
+    '''
+    Tests when subparser takes input from stdin
+    '''
+    self.args.pattern = ""
+    self.args.filename = ""
+
+    with open(self.TEST_FILE_NAME, 'r') as sys.stdin:
+      self.function(self.args)
+    self.output = self.out.getvalue().strip()
+
+  def tearDown(self):
+    sys.stdout = self.saved_stdout
+
+class RegexezeTargetStringSubparserTest(RegexezeSubparserTest):
+  '''
+  Test case for testing subparsers that take in a target string
+  '''
+  def setUp(self):
+    super(RegexezeTargetStringSubparserTest, self).setUp()
+    self.target_string = "a"
+    self.args.target_string = self.target_string
+
+    #create target string to match the test file
+    self.testFileTargetString = "hellohellohellohellohellohellohellohellohellohellohow are you"
+
+  def testFilename(self):
+    self.args.target_string = self.testFileTargetString
+    super(RegexezeTargetStringSubparserTest, self).testFilename()
+
+  def testStdin(self):
+    self.args.target_string = self.testFileTargetString
+    super(RegexezeTargetStringSubparserTest, self).testStdin()
+
+class TranslateSubparserTest(RegexezeSubparserTest):
+  '''
+  Test case for testing the translate subparser
+  '''
+  def setUp(self):
+    super(TranslateSubparserTest, self).setUp()
+    self.function = regexeze.translateMain
+
+  def testPattern(self):
+    super(TranslateSubparserTest, self).testPattern()
+    self.assertEquals(self.output, '(a)',
+                      "passing only a pattern to translateMain should translate the pattern")
+
+  def testFilename(self):
+    super(TranslateSubparserTest, self).testFilename()
+    self.assertEquals(self.output, '(hello){10}(how\\ are\\ you)',
+                      "passing filename should translate pattern in the file")
+
+  def testStdin(self):
+    super(TranslateSubparserTest, self).testStdin()
+    self.assertEquals(self.output, '(hello){10}(how\\ are\\ you)',
+                      "with absence of filename and pattern, should translate from stdin")
+
+class MatchSubparserTest(RegexezeTargetStringSubparserTest):
+  '''
+  Test case for testing the match subparser
+  '''
+  def setUp(self):
+    super(MatchSubparserTest, self).setUp()
+    self.function = regexeze.matchMain
+    self.testFileOutput = ("Match successful\n\nAll groups:\n\tFull match: "
+                           "hellohellohellohellohellohellohellohellohellohellohow "
+                           "are you\n\tGroup 1: hello\n\tGroup 2: how are you\n\nNamed groups:")
+
+
+  def testPattern(self):
+    super(MatchSubparserTest, self).testPattern()
+    self.assertEquals(self.output, 'Match successful\n\nAll groups:\n\tFull match: a\n\tGroup 1: a\n\nNamed groups:', "passing a pattern should trigger regexeze to match the target string against the pattern")
+
+  def testFilename(self):
+    super(MatchSubparserTest, self).testFilename()
+    self.assertEquals(self.output, self.testFileOutput,
+                      "passing filename should trigger regexeze to match the target string against the pattern in the file")
+
+  def testStdin(self):
+    super(MatchSubparserTest, self).testStdin()
+    self.assertEquals(self.output, self.testFileOutput,
+                      "in absence of filename and pattern, should match against from stdin")
+
+def runAllTests():
+  #create test suites for each testcase
+  syntaxTestSuite = unittest.TestLoader().loadTestsFromTestCase(test_regex_parser_machine)
+
+  #test suites for subparsers
+  translateSubparserTestSuite = unittest.TestLoader().loadTestsFromTestCase(TranslateSubparserTest)
+  matchSubparserTestSuite = unittest.TestLoader().loadTestsFromTestCase(MatchSubparserTest)
+
+  subparserTestSuite = unittest.TestSuite([translateSubparserTestSuite,\
+                                           matchSubparserTestSuite])
+
+  #create full test suite
+  fullTestSuite = unittest.TestSuite([syntaxTestSuite,\
+                                      subparserTestSuite])
+
+  #run tests
+  unittest.TextTestRunner(verbosity=2).run(fullTestSuite)
+
 if __name__ == '__main__':
-    unittest.main()
+  runAllTests()

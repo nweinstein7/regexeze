@@ -2,7 +2,7 @@ import shlex
 import regexeze_states
 import sys
 import re
-import argparse
+import regexeze_argparser
 
 class RegexezeObject(object):
   '''
@@ -115,19 +115,21 @@ class RegexezeObject(object):
     self.current_fragment = self.OPEN_PARENTHESIS + re.escape(self.current_token)
 
 #wrapper methods that produce same functionality as python re module, only with regexeze syntax
-def compile(pattern=""):
+def compile(pattern="", source=""):
   '''
   Compile a regexeze expression into a regexeze object
   @param pattern: the pattern, in regexeze syntax, to be compiled
   @type pattern: str
   @return: the compiled regexeze object
   @rtype: RegexezeObject
+  @param source: the source of the pattern - filename, stdin, or blank meaning the pattern string
+  @type source: str
   '''
   regexezeObject = RegexezeObject(pattern)
-  regexezeObject.parse()
+  regexezeObject.parse(source)
   return regexezeObject
 
-def search(pattern="", target_string=""):
+def search(pattern="", target_string="", source=""):
   '''
   Search a string for the pattern
   @param pattern: the pattern, in regexeze syntax, to use for searching
@@ -136,11 +138,13 @@ def search(pattern="", target_string=""):
   @type target_string: str
   @return: the match object resulting from the search
   @rtype: re.MatchObject
+  @param source: the source of the pattern - filename, stdin, or blank meaning the pattern string
+  @type source: str
   '''
-  regexezeObject = compile(pattern)
+  regexezeObject = compile(pattern, source)
   return re.search(regexezeObject.ret_val, target_string)
 
-def match(pattern="", target_string=""):
+def match(pattern="", target_string="", source=""):
   '''
   Match a string to the regexeze expression pattern
   @param pattern: the pattern, in regexeze syntax, to use for matching
@@ -149,21 +153,24 @@ def match(pattern="", target_string=""):
   @type target_string: str
   @return: the match object resulting from the match
   @rtype: re.MatchObject
+  @param source: the source of the pattern - filename, stdin, or blank meaning the pattern string
+  @type source: str
   '''
-  regexezeObject = compile(pattern)
+  regexezeObject = compile(pattern, source)
   return re.match(regexezeObject.ret_val, target_string)
 
-def main(input_string=None, filename=None):
+def translateMain(args):
   '''
-  Main method for the program
-  @param input_string: a string to be parsed
-  @type input_string: str
-  @param filename: name of file to be parsed
-  @type filename: str
+  Method called when user selects translate mode when running from command line
+  @param args: the arguments accepted
+  @type args: argparse namespace
   '''
+  pattern = args.pattern
+  filename = args.filename
+
   regexezeObject = RegexezeObject('')
-  if input_string:
-    regexezeObject = RegexezeObject(input_string);
+  if pattern:
+    regexezeObject = RegexezeObject(pattern);
     regexezeObject.parse()
   elif filename:
     regexezeObject.parse(filename)
@@ -171,11 +178,48 @@ def main(input_string=None, filename=None):
     regexezeObject.parse(sys.stdin)
   print regexezeObject.ret_val
 
+def matchMain(args):
+  '''
+  Method called when user selects match mode when running from command line
+  @param args: the arguments accepted
+  @type args: argparse Namespace
+  '''
+  pattern = args.pattern
+  filename = args.filename
+  target_string = args.target_string
+  matchObject = None
+  if pattern:
+    matchObject = match(pattern, target_string)
+  elif filename:
+    matchObject = match("", target_string, filename)
+  else:
+    matchObject = match("", target_string, sys.stdin)
+  if matchObject:
+    print "Match successful\n"
+    print "All groups:"
+    print "\tFull match: {0}".format(matchObject.group(0))
+    for n, group in enumerate(matchObject.groups(), start=1):
+      print "\tGroup {0}: {1}".format(n, group)
+      n+=1
+    print "\nNamed groups:"
+    for groupName in matchObject.groupdict().keys():
+      print "\t{0}: {1}".format(groupName, matchObject.groupdict()[groupName])
+  else:
+    print "No match"
+
+#function map from sub parsers to functions
+FUNCTION_MAP = { 'translate' : translateMain,
+                 'match' : matchMain }
+def main(args):
+  '''
+  Main method for the module
+  @param args: the arguments accepted
+  @type args: argparse namespace
+  '''
+  FUNCTION_MAP[args.cmd](args)
+
 if __name__ == '__main__':
-  argparser = argparse.ArgumentParser(description='Parses a regular expression in regexeze. If no input string or file is supplied, parses from command line.')
-  group = argparser.add_mutually_exclusive_group()
-  group.add_argument('-i', '--input-string', dest='input_string', type=str, help='A string of input')
-  group.add_argument('-f', '--filename', dest='filename', type=str, help='A file (or path to file) containing a regex')
+  argparser = regexeze_argparser.RegexezeArgparser()
 
   args = argparser.parse_args()
-  main(args.input_string, args.filename)
+  main(args)

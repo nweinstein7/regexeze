@@ -8,48 +8,68 @@ A high level, human-readable interface for regular expressions.
 - descriptive keywords help jog memory
 - support for expanded layout, for even easier comprehension
 
-##How it works:
-###Usage:
-- Parse regexes from stdin:
-```
-python regexeze.py
-```
+##Usage:
+Regexeze can be imported for use in a Python script, or used from the command line.
 
-- Parse regexes from a string:
+###Command line:
+The module has several subcommands that perform certain functions. For a complete list, run:
 ```
-python regexeze -i "expr: 'a';"
+python regexeze.py -h
 ```
-
-- Parse regexes from file:
+Output:
 ```
-python regexeze -f test_file.txt
-```
-
-- Get usage help:
-```
-python regexeze.py --help
-usage: regexeze.py [-h] [-i INPUT_STRING | -f FILENAME]
+usage: regexeze.py [-h] {translate,match} ...
 
 Parses a regular expression in regexeze. If no input string or file is
 supplied, parses from command line.
 
 optional arguments:
-  -h, --help            show this help message and exit
-  -i INPUT_STRING, --input-string INPUT_STRING
-                        A string of input
-  -f FILENAME, --filename FILENAME
-                        A file (or path to file) containing a regex
+  -h, --help         show this help message and exit
+
+Commands:
+  {translate,match}
+    translate        Translate from regexeze to standard Python regex. If no
+                     pattern or file is supplied, takes pattern from stdin.
+    match            Matches a target string to a pattern. If pattern is
+                     supplied, matches pattern. If file is supplied, matches
+                     pattern inside file. Otherwise, matches from stdin.
+
 ```
 
-###Syntax:
+To get individual help on a subcommand, run:
+```
+python regexeze.py \<subcommand name\> -h
+```
+where \<subcommand name\> is the name of the subcommand, for example *translate* or *match*
+
+Most subcommands take in a pattern, -p, or a filename (ending in .rgxz), -f, containing a pattern
+If neither is provided, they allow the user to enter the pattern into the command line
+
+For example:
+```
+#translate into Python regex from file
+python regexeze.py translate -f example.rgxz
+
+#translate into Python regex from pattern
+python regexe.py translate -p "expr: 'a';"
+```
+
+###From code:
+Regexeze supports all helper methods in the standard Python regex module:
+```
+regexeze.compile(pattern="", source="")
+regexeze.match(pattern="", target_string="", source="")
+regexeze.search(pattern="", target_string="", source="")
+```
+
+##Syntax and overview of keywords:
 Regular expressions consist of series of "expressions", which start with the keyword "expr" (pronounced "exper"?) and typically followed by a colon. They end with semicolon (;).
 
 >NOTE 1: Always remember to end with a semicolon!
 
 >NOTE 2: Quotes (either double (") or single (')) are recommended for all non-keyword entries in expressions, but not required.
 
-##Overview of keywords:
-###"expr:"
+###Creating a basic expression with "expr:"
 expr (see pronunciation suggestion above) starts every expression in regexeze followed by a colon.
 
 For example:
@@ -79,7 +99,7 @@ expr: "ab";
 expr: "a"; expr: "b";
 ```
 
-###"any_char":
+###Matching any character or set of characters with "any_char":
 The *any_char* keyword matches any character when unmodified, or any character in a given set when modified:
 
 For example:
@@ -136,7 +156,7 @@ expr: any_char except "abc" or_except "def" or_except "ghi";
 
 >NOTE 4: All special *or* keywords can be strung together infinitely.
 
-###"for":
+###Quantifiers with "for":
 The *for* keyword modifies how many times an expression should occur.
 
 For example:
@@ -177,7 +197,7 @@ expr: "a" for 2 up_to 10;
 expr: "b" for 3 up_to infinity;
 ```
 
-###"greedy" and "not_greedy":
+###Defining the scope of quantifiers with "greedy" and "not_greedy":
 After indicating the number of repetitions using *for*, you can indicate whether that modifier is *greedy* or *not_greedy*. This determines whether it will try to match the "most possible" (greedy) or "fewest possible" (not greedy). You can specify *greedy* or *not_greedy* after any for statement, though greedy is the default for all.
 
 For example:
@@ -201,7 +221,7 @@ This will match "\<sometag\>" alone.
 expr: "a" for 2 up_to 3 not_greedy;
 ```
 
-###Nesting:
+###Nesting with square brackets:
 Expressions can also be nested inside of other expressions. Nesting is indicated by square brackets ([]).
 
 For example:
@@ -221,7 +241,7 @@ expr: [ expr: "a" for 2; expr: "b" for 3;] for 4;
 
 >NOTE 6: Inside nested expressions, you can string together several expressions, except for the special case of or expressions (see below). Nested expressions can then be modified like other expressions.
 
-###"or":
+###Expressing alternatives with "or":
 Nesting is particularly useful for *or* statements, which present two (or more) alternatives. 
 
 >NOTE 7: Don't confuse *or* with *or_of*, *or_except*, and *or_from* - remember, those only apply after any_char to specify a set of characters.
@@ -252,7 +272,7 @@ For "a" followed by "b" or "c", do this:
 expr: "a"; expr: [ expr: "b" or "c";];
 ```
 
-###"start_of_string" and "end_of_string":
+###Matching only start or end with "start_of_string" and "end_of_string":
 The keywords *start_of_string* and *end_of_string* indicate that the expression will only match directly at the start or end.
 
 For example:
@@ -275,7 +295,7 @@ expr: "happily ever after"; expr: end_of_string;
 expr: start_of_string for zero_or_one; #ERROR
 ```
 
-###"set_flags:"
+###Setting regular expression flags with "set_flags:"
 Regexeze allows the user to set all the same flags as the Python re module, with the exception of
 VERBOSE, because regexeze is inherently "verbose".
 
@@ -364,7 +384,7 @@ expr: #; #ERROR
 expr: "#"; #CORRECT: matches a single "#" symbol
 ```
 
-###Group Names:
+###Group Names with "name":
 Nested expressions can be *named*.
 This facilitates easier retrieval of the match of that nested expression.
 
