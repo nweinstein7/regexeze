@@ -186,92 +186,96 @@ class test_regex_parser_machine(unittest.TestCase):
 
     #TEST GROUP NAMES
     #test simple group name
-    self.regexObject = regexeze.RegexezeObject('expr one: "1";')
+    self.regexObject = regexeze.RegexezeObject('expr: [ name: one; expr: "1";];')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(?P<one>1)', 'Simple group name')
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>(1))', 'Simple group name')
 
     #test multiple group names
-    self.regexObject = regexeze.RegexezeObject('expr one: "1"; expr two: "2";')
+    self.regexObject = regexeze.RegexezeObject('expr: [ name: one; expr: "1";]; expr: [ name: two;expr: "2";];')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(?P<one>1)(?P<two>2)', 'Two group names in sequence')
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>(1))(?P<two>(2))', 'Two group names in sequence')
 
     #test group names interspersed with regular group names
-    self.regexObject = regexeze.RegexezeObject('expr one: "1"; expr: "2"; expr three: "3"; expr: "4";')
+    self.regexObject = regexeze.RegexezeObject('expr: [ name: one; expr: "1"; ]; expr: "2"; expr: [ name: three; expr: "3";]; expr: "4";')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(?P<one>1)(2)(?P<three>3)(4)', 'Named groups interspersed with standard expressions')
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>(1))(2)(?P<three>(3))(4)', 'Named groups interspersed with standard expressions')
 
-    #test colon after group names
-    self.regexObject = regexeze.RegexezeObject('expr one two;')
+    #test colon after name token
+    self.regexObject = regexeze.RegexezeObject('expr: [ name hello;];')
     self.assertRaises(regexeze_errors.ColonError, self.regexObject.parse)
-    self.assertTrue(isinstance(self.regexObject.state, regexeze_states.ColonErrorState), 'Should enforce colon after group name')
+    self.assertTrue(isinstance(self.regexObject.state, regexeze_states.ColonErrorState), 'Should enforce colon after name token')
 
     #test invalid group name - preexisting group
-    self.regexObject = regexeze.RegexezeObject('expr one: "1"; expr one: "1";')
+    self.regexObject = regexeze.RegexezeObject('expr: [ name: one; expr: "1";]; expr: [ name: one; expr: "1";];')
     self.assertRaises(regexeze_errors.InvalidGroupNameError, self.regexObject.parse)
     self.assertTrue(isinstance(self.regexObject.state, regexeze_states.InvalidGroupNameState), 'Group names can not have the same name as a previous group')
 
     #test invalid group name - collision with regexeze keyword
-    self.regexObject = regexeze.RegexezeObject('expr alphanumeric: alphanumeric;')
+    self.regexObject = regexeze.RegexezeObject('expr: [name: alphanumeric; expr: alphanumeric;];')
     self.assertRaises(regexeze_errors.InvalidGroupNameError, self.regexObject.parse)
     self.assertTrue(isinstance(self.regexObject.state, regexeze_states.InvalidGroupNameState), 'Group names can not have the same name as a regexeze keyword')
 
     #test nested group name
-    self.regexObject = regexeze.RegexezeObject('expr one: [ expr two: [ expr three: "3"; ];];')
+    self.regexObject = regexeze.RegexezeObject('expr: [ name: one; expr: [ name: two; expr: [ name: three; expr: "3"; ];];];')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(?P<one>(?P<two>(?P<three>3)))', 'Deeply nested group names')
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>(?P<two>(?P<three>(3))))', 'Deeply nested group names')
 
     #test nested group name followed by group collision
-    self.regexObject = regexeze.RegexezeObject('expr one: [ expr two: [ expr three: "3"; ];]; expr three: 3;')
+    self.regexObject = regexeze.RegexezeObject('expr: [ name: one; expr: [ name: two; expr: [ name: three; expr: "3"; ];];]; expr: [ name: three; expr: 3;];')
     self.assertRaises(regexeze_errors.InvalidGroupNameError, self.regexObject.parse)
     self.assertTrue(isinstance(self.regexObject.state, regexeze_states.InvalidGroupNameState), 'Namespace should carry from lower nesting level to higher')
 
     #test nested group name that collides with parent
-    self.regexObject = regexeze.RegexezeObject('expr one: [ expr one: [ expr three: "3"; ];];')
+    self.regexObject = regexeze.RegexezeObject('expr: [ name: one; expr: [ name: one; expr: "1"; ];];')
     self.assertRaises(regexeze_errors.InvalidGroupNameError, self.regexObject.parse)
     self.assertTrue(isinstance(self.regexObject.child.state, regexeze_states.InvalidGroupNameState), 'Namespace should carry from higher nesting level to lower')
 
     #test or with group names
-    self.regexObject = regexeze.RegexezeObject("expr one: 'a' or [ expr two: 'b';];")
+    self.regexObject = regexeze.RegexezeObject("expr: [ name: one; expr: 'a';] or [ name: two;  expr: 'b';];")
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val,'(?P<one>a)|((?P<two>b))', 'Should be able to use group names after or')
+    self.assertEquals(self.regexObject.ret_val,'(?P<one>(a))|(?P<two>(b))', 'Should be able to use group names after or')
 
     #test invalid group name after or
-    self.regexObject = regexeze.RegexezeObject("expr one: 'a' or [ expr two: 'b'; expr two: 'b';];")
+    self.regexObject = regexeze.RegexezeObject("expr: [ name: one; expr: 'a';] or [ name: two; expr: 'b'; expr: [ name: two; expr: 'b';];];")
     self.assertRaises(regexeze_errors.InvalidGroupNameError, self.regexObject.parse)
     self.assertTrue(isinstance(self.regexObject.child.state, regexeze_states.InvalidGroupNameState), 'Namespace should carry over after or')
 
-    self.regexObject = regexeze.RegexezeObject("expr one: 'a' or [ expr one: 'b'; expr two: 'b';];")
+    self.regexObject = regexeze.RegexezeObject("expr: [ name: one; expr: 'a';] or [ name: one; expr: 'b';];")
     self.assertRaises(regexeze_errors.InvalidGroupNameError, self.regexObject.parse)
-    self.assertTrue(isinstance(self.regexObject.child.state, regexeze_states.InvalidGroupNameState), 'Namespace should carry over after or')
+    self.assertTrue(isinstance(self.regexObject.state, regexeze_states.InvalidGroupNameState), 'Namespace should carry over after or')
+
+    #test repeated name
+    self.regexObject = regexeze.RegexezeObject("expr: [ name: one; name: two; expr: 'a'; ] ;")
+    self.assertRaises(regexeze_errors.NewNestedExpressionError, self.regexObject.parse)
 
     #TEST GROUP REFS
     #test simple group ref
-    self.regexObject = regexeze.RegexezeObject('expr one: "1"; expr: one;')
+    self.regexObject = regexeze.RegexezeObject('expr: [ name: one; expr: "1";]; expr: one;')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(?P<one>1)((?P=one))', 'Simple group ref')
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>(1))(?P=one)', 'Simple group ref')
 
     #test nested group ref - higher to lower
-    self.regexObject = regexeze.RegexezeObject('expr one: [ expr: one; ];')
+    self.regexObject = regexeze.RegexezeObject('expr: [ name: one; expr: one; ];')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(?P<one>((?P=one)))', 'Child group can reference its parent, though this is a degenerate case')
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>(?P=one))', 'Child group can reference its parent, though this is a degenerate case')
 
     #test nested group ref - lower to higher
-    self.regexObject = regexeze.RegexezeObject('expr: [ expr one: "1"; ]; expr: one;')
+    self.regexObject = regexeze.RegexezeObject('expr: [ expr: [name: one; expr: "1";]; ]; expr: one;')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '((?P<one>1))((?P=one))', 'Expression outside of nested expression can reference previous nested expression')
+    self.assertEquals(self.regexObject.ret_val, '((?P<one>(1)))(?P=one)', 'Expression outside of nested expression can reference previous nested expression')
 
     #test group ref before definition - should be treated as plain text
-    self.regexObject = regexeze.RegexezeObject('expr: one; expr one: "1";')
+    self.regexObject = regexeze.RegexezeObject('expr: one; expr: [ name: one; expr: "1";];')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(one)(?P<one>1)', 'Expression outside of nested expression can reference previous nested expression')
+    self.assertEquals(self.regexObject.ret_val, '(one)(?P<one>(1))', 'Expression outside of nested expression can reference previous nested expression')
 
     #test group ref with modifier
-    self.regexObject = regexeze.RegexezeObject('expr one: "1"; expr: one for zero_or_one;')
+    self.regexObject = regexeze.RegexezeObject('expr: [name: one; expr: "1";]; expr: one for zero_or_one;')
     self.regexObject.parse()
-    self.assertEquals(self.regexObject.ret_val, '(?P<one>1)((?P=one))?', 'group refs should be modifiable')
+    self.assertEquals(self.regexObject.ret_val, '(?P<one>(1))(?P=one)?', 'group refs should be modifiable')
 
     #test self referential group ref
-    self.regexObject = regexeze.RegexezeObject('expr one: one;')
+    self.regexObject = regexeze.RegexezeObject('expr: [name: one; expr: one;];')
     self.regexObject.parse()
     self.assertEquals(self.regexObject.ret_val, '(?P<one>(?P=one))', 'a named group should be able to contain a reference to itself, though this is a degenerate case')
 

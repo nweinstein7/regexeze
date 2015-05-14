@@ -28,7 +28,7 @@ class NewNestedExpressionError(Error):
   Exception raised when a new nested expression does not start with expr
   '''
   def __init__(self, parser):
-    self.msg = 'Each nested expression must start with expr\nIf you were trying to use an open square bracket ([) as an expression, remember to use a valid modifier and end with a semicolon.'
+    self.msg = 'Each nested expression must start with <expr> or <name>\nIf you were trying to use an open square bracket ([) as an expression, remember to use a valid modifier and end with a semicolon.'
     self.msg += '\n' + self.show_error_location(parser)
 
 class UnclosedBracketError(Error):
@@ -93,7 +93,7 @@ class ColonError(Error):
   Exception raised when there is a missing colon after group name
   '''
   def __init__(self, parser):
-    self.msg = 'expr needs a colon after itself or group name definition'
+    self.msg = 'The keyword <expr> must be followed by a colon. The keyword <name> must also be followed by a colon.'
     self.msg += '\n' + self.show_error_location(parser)
 
 class FlagsColonError(Error):

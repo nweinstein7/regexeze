@@ -36,6 +36,7 @@ class RegexState(object):
   M_UP_TO_N_REPETITIONS = 'MUpToNRepetitions'
   M_UP_TO_INFINITY_REPETITIONS = 'MUpToInfinityRepetitions'
   NEW_NESTED_EXPRESSION = 'NewNestedExpression'
+  NAMED_NEW_NESTED_EXPRESSION = 'NamedNewNestedExpression'
   NESTED_EXPRESSION = 'NestedExpression'
   NESTED_EXPRESSION_DOWN_LEVEL = 'NestedExpressionDownLevel'
   NESTED_EXPRESSION_UP_LEVEL = 'NestedExpressionUpLevel'
@@ -63,6 +64,7 @@ class RegexState(object):
   SET_FLAGS = 'SetFlags'
   FLAG_STATE = 'FlagState'
   CHECK_FLAGS_COLON = 'CheckFlagsColon'
+  CHECK_NAME_COLON = 'CheckNameColon'
   FLAGS_COLON_ERROR_STATE = 'FlagsColonErrorState'
   INVALID_FLAG_STATE = 'InvalidFlagState'
   CHECK_GROUP_NAME = 'CheckGroupName'
@@ -79,7 +81,7 @@ class RegexState(object):
   END_OF_EXPRESSION_SYMBOL = ';'
   M_REPETITIONS_FORMAT = '{{{0}}}'
   GROUP_NAME_FORMAT = '(?P<{0}>'
-  GROUP_REF_FORMAT = '(?P={0})'
+  GROUP_REF_FORMAT = '?P={0}'
   OPEN_CLASS_SYMBOL = '['
   CLOSE_CLASS_SYMBOL = ']'
   CLASS_RANGE_SYMBOL = '-'
@@ -145,6 +147,7 @@ class RegexState(object):
   MULTILINE_FLAG_TOKEN = 'multiline'
   DOT_ALL_FLAG_TOKEN = 'any_char_all'
   UNICODE_FLAG_TOKEN = 'unicode'
+  NAME_TOKEN = 'name'
 
   def __init__(self):
     self.transitions = {}
@@ -773,12 +776,30 @@ class NewNestedExpression(ModifiablePotentiallyFinalRegexState):
   def __init__(self):
     super(NewNestedExpression, self).__init__()
     self.transitions[self.EXPRESSION_TOKEN] = self.NESTED_EXPRESSION
+    self.transitions[self.NAME_TOKEN] = self.CHECK_NAME_COLON
     self.transitions[self.NESTED_CLOSE_TOKEN] = self.END_NESTED_EXPRESSION
     self.transitions[self.END_OF_INPUT_TOKEN] = self.UNCLOSED_BRACKET_ERROR_STATE
 
   def do_action(self, parser):
     super(NewNestedExpression, self).do_action(parser)
     parser.process_current_token_as_plain_text()
+    parser.child.namespace.update(parser.namespace)
+
+  def get_token_not_found_transition(self, token):
+    return self.NEW_NESTED_EXPRESSION_ERROR_STATE
+
+class NamedNewNestedExpression(RegexState):
+  '''
+  State after which a name has been specified in a nested expression
+  '''
+  def __init__(self):
+    super(NamedNewNestedExpression, self).__init__()
+    self.transitions[self.EXPRESSION_TOKEN] = self.NESTED_EXPRESSION
+    self.transitions[self.NESTED_CLOSE_TOKEN] = self.END_NESTED_EXPRESSION
+    self.transitions[self.END_OF_INPUT_TOKEN] = self.UNCLOSED_BRACKET_ERROR_STATE
+
+  def do_action(self, parser):
+    parser.child.namespace.update(parser.namespace)
 
   def get_token_not_found_transition(self, token):
     return self.NEW_NESTED_EXPRESSION_ERROR_STATE
@@ -791,16 +812,24 @@ class CheckColon(RegexState):
   def get_token_not_found_transition(self, token):
     return self.COLON_ERROR_STATE
 
+class CheckNameColon(RegexState):
+  def __init__(self):
+    super(CheckNameColon, self).__init__()
+    self.transitions[self.COLON_TOKEN] = self.CHECK_GROUP_NAME
+
+  def get_token_not_found_transition(self, token):
+    return self.COLON_ERROR_STATE
+
 class GroupNameState(RegexState):
   '''
   State in which a group name has been specified
   '''
   def __init__(self):
     super(GroupNameState, self).__init__()
-    self.transitions[self.COLON_TOKEN] = self.START_EXPRESSION
+    self.transitions[self.END_OF_EXPRESSION_SYMBOL] = self.NAMED_NEW_NESTED_EXPRESSION
 
   def get_token_not_found_transition(self, token):
-    return self.COLON_ERROR_STATE
+    return self.INCOMPLETE_EXPRESSION_ERROR_STATE
 
   def do_action(self, parser):
     parser.OPEN_PARENTHESIS = self.GROUP_NAME_FORMAT.format(parser.current_token)
@@ -808,13 +837,12 @@ class GroupNameState(RegexState):
 
 class CheckGroupName(RegexState):
   '''
-  State after expr keyword, in which parser is checking to see if this expression will have name
+  State after name colon, in which parser is checking to see if name specified is valid
   @param namespace: the namespace of the parser to be checked
   @type namespace: dict string->string
   '''
   def __init__(self):
     super(CheckGroupName, self).__init__()
-    self.transitions[self.COLON_TOKEN] = self.START_EXPRESSION
 
   def get_token_not_found_transition(self, token):
     if token in self.namespace or token in self.full_char_set:
@@ -883,7 +911,7 @@ class NewExpression(RegexState):
     if token == self.EXPRESSION_TOKEN and self.after_or:
       return self.MULTIPLE_OR_ERROR_STATE
     elif token == self.EXPRESSION_TOKEN:
-      return self.CHECK_GROUP_NAME
+      return self.CHECK_COLON
     return self.NEW_EXPRESSION_ERROR_STATE
 
   def do_action(self, parser):
@@ -950,7 +978,9 @@ class RegexStateFactory(object):
                        RegexState.CHECK_GROUP_NAME: CheckGroupName(),
                        RegexState.GROUP_NAME_STATE: GroupNameState(),
                        RegexState.INVALID_GROUP_NAME_STATE: InvalidGroupNameState(),
-                       RegexState.GROUP_REF_STATE: GroupRefState()}
+                       RegexState.GROUP_REF_STATE: GroupRefState(),
+                       RegexState.CHECK_NAME_COLON: CheckNameColon(),
+                       RegexState.NAMED_NEW_NESTED_EXPRESSION: NamedNewNestedExpression()}
 
   @staticmethod
   def get_next_state(state, token):
