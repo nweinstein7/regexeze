@@ -384,7 +384,7 @@ expr: #; #ERROR
 expr: "#"; #CORRECT: matches a single "#" symbol
 ```
 
-###Group Names with "name":
+###Group names with "name":
 Nested expressions can be *named*.
 This facilitates easier retrieval of the match of that nested expression.
 
