@@ -9,7 +9,7 @@ A high level, human-readable interface for regular expressions.
 - support for expanded layout, for even easier comprehension
 
 ##Usage:
-Regexeze can be imported for use in a Python script, or used from the command line.
+Regexeze can be run from the command line or imported for use in a Python script.
 
 ###Command line:
 The module has several subcommands that perform certain functions. For a complete list, run:
@@ -38,7 +38,7 @@ Commands:
 
 To get individual help on a subcommand, run:
 ```
-python regexeze.py \<subcommand name\> -h
+python regexeze.py <subcommand name> -h
 ```
 where \<subcommand name\> is the name of the subcommand, for example *translate* or *match*
 
@@ -55,7 +55,7 @@ python regexe.py translate -p "expr: 'a';"
 ```
 
 ###From code:
-Regexeze supports all helper methods in the standard Python regex module:
+Regexeze also has its own version of the helper methods in the standard Python re module:
 ```
 regexeze.compile(pattern="", source="")
 regexeze.match(pattern="", target_string="", source="")
