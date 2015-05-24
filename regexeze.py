@@ -129,6 +129,18 @@ def compile(pattern="", source=""):
   regexezeObject.parse(source)
   return regexezeObject
 
+def translate(pattern="", source=""):
+  '''
+  Translate a pattern from regexeze to standard Python re syntax
+  @param pattern: the pattern, in regexeze syntax, to be compiled
+  @type pattern: str
+  @param source: the source of the pattern - filename, stdin, or blank meaning the pattern string
+  @type source: str
+  @return: the regexeze pattern in standard Python syntax
+  @rtype: str
+  '''
+  return compile(pattern, source).ret_val
+
 def search(pattern="", target_string="", source=""):
   '''
   Search a string for the pattern
