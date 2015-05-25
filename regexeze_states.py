@@ -616,7 +616,7 @@ class OpenClassRange(RegexState):
     parser.current_fragment += re.escape(parser.current_token) + self.CLASS_RANGE_SYMBOL
 
   def get_token_not_found_transition(self, token):
-    return self.INVALID_CLASS_RANGE_ERROR_STATE
+    return self.INCOMPLETE_CLASS_RANGE_ERROR_STATE
 
 class Except(RegexState):
   '''
